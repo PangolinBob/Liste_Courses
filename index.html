@@ -799,7 +799,7 @@
 </head>
 
 <body class="loading" data-theme="dark">
-  <div id="splash" aria-hidden="false">
+  <div id="splash" aria-hidden="true">
     <div class="splash-inner">
       <img class="splash-logo" src="IconCourses.png" alt="Logo" onerror="this.style.display='none'" />
       <div class="splash-title">Liste de courses</div>
@@ -2107,9 +2107,6 @@
       }, 240);
     });
 
-      }, 220);
-    });
-
     /* ----------------------------
        Boot
     ---------------------------- */
@@ -2130,41 +2127,14 @@
       render();
     };
 
-	function splashAnyTap(e) {
-	  if (splashDone) return;
-	  // évite le “tap” qui se transforme en autre geste iOS
-	  if (e && e.preventDefault) e.preventDefault();
-	  enterApp();
-	  cleanupSplashListeners();
-	}
-
-	function cleanupSplashListeners() {
-	  if (splashEl) {
-		splashEl.removeEventListener("pointerdown", splashAnyTap);
-		splashEl.removeEventListener("click", splashAnyTap);
-		splashEl.removeEventListener("touchend", splashAnyTap);
-	  }
-	  document.removeEventListener("pointerdown", splashAnyTapCapture, true);
-	  document.removeEventListener("click", splashAnyTapCapture, true);
-	  document.removeEventListener("touchend", splashAnyTapCapture, true);
-	}
-
-	// fallback capture : si l’overlay ne reçoit pas l’event, on capte quand même
-	function splashAnyTapCapture(e) {
-	  if (!splashDone) splashAnyTap(e);
-	}
-
 	if (splashEl) {
-	  splashEl.setAttribute("aria-hidden", "false");
-	  splashEl.addEventListener("pointerdown", splashAnyTap, { passive: false });
-	  splashEl.addEventListener("click", splashAnyTap, { passive: false });
-	  splashEl.addEventListener("touchend", splashAnyTap, { passive: false });
+	  const onSplash = (e) => {
+		if (e && e.preventDefault) e.preventDefault();
+		enterApp();
+	  };
+	  splashEl.addEventListener("pointerdown", onSplash, { passive: false });
+	  splashEl.addEventListener("click", onSplash, { passive: false });
 	}
-
-	// tap n’importe où tant que le splash est là
-	document.addEventListener("pointerdown", splashAnyTapCapture, true);
-	document.addEventListener("click", splashAnyTapCapture, true);
-	document.addEventListener("touchend", splashAnyTapCapture, true);
 
     window.addEventListener("load", () => {
       setTimeout(() => {
