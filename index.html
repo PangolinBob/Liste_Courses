@@ -1939,25 +1939,39 @@
       containerEl.insertBefore(placeholder, rowEl);
       rowEl.remove();
 
-      dragCtx = {
-        type,
-        id,
-        pointerId,
-        startX,
-        startY,
-        offsetX: startX - rect.left,
-        offsetY: startY - rect.top,
-        rowEl,
-        placeholder,
-        ghost,
-        containerEl,
-        active: true
-      };
+		dragCtx = {
+		  type,
+		  id,
+		  pointerId,
+		  startX,
+		  startY,
+		  offsetX: startX - rect.left,
+		  offsetY: startY - rect.top,
+		  rowEl,
+		  placeholder,
+		  ghost,
+		  containerEl,
+		  active: true,
 
-      document.body.style.userSelect = "none";
-      document.body.style.cursor = "grabbing";
-      document.addEventListener("touchmove", preventScrollWhileDragging, { passive: false });
-      moveGhost(startX, startY);
+		  // iPhone: on mémorise l’état précédent pour le restaurer proprement
+		  prevOverflow: document.body.style.overflow,
+		  prevTouchAction: document.body.style.touchAction
+		};
+
+		// iPhone: on coupe le scroll pendant le drag
+		document.body.style.overflow = "hidden";
+		document.body.style.touchAction = "none";
+
+		// iPhone: on “accroche” le contact (si possible)
+		try { placeholder.setPointerCapture(pointerId); } catch (_) {}
+
+		document.body.style.userSelect = "none";
+		document.body.style.cursor = "grabbing";
+		document.addEventListener("touchmove", preventScrollWhileDragging, { passive: false });
+		moveGhost(startX, startY);
+	  
+	  
+	  
     }
 
     function moveGhost(x, y) {
@@ -1976,10 +1990,14 @@
       placeholder.remove();
       ghost.remove();
 
-      document.body.style.userSelect = "";
-      document.body.style.cursor = "";
-      document.removeEventListener("touchmove", preventScrollWhileDragging);
-      dragCtx.active = false;
+		// restaurer le scroll iPhone
+		document.body.style.overflow = (dragCtx.prevOverflow !== undefined) ? dragCtx.prevOverflow : "";
+		document.body.style.touchAction = (dragCtx.prevTouchAction !== undefined) ? dragCtx.prevTouchAction : "";
+
+		document.body.style.userSelect = "";
+		document.body.style.cursor = "";
+		document.removeEventListener("touchmove", preventScrollWhileDragging);
+		dragCtx.active = false;
 
       if (!cancel) {
         pushUndo();
@@ -2003,13 +2021,15 @@
       dragCtx = null;
     }
 
-    function handlePointerMove(e) {
-      if (!dragCtx || !dragCtx.active) return;
-      if (e.pointerId !== dragCtx.pointerId) return;
+	function handlePointerMove(e) {
+	  if (!dragCtx || !dragCtx.active) return;
+	  if (e.pointerId !== dragCtx.pointerId) return;
 
-      const x = e.clientX;
-      const y = e.clientY;
-      moveGhost(x, y);
+	  if (e.cancelable) e.preventDefault(); // iPhone: bloque scroll/gestes pendant le drag
+
+	  const x = e.clientX;
+	  const y = e.clientY;
+	  moveGhost(x, y);
 
       const elUnder = document.elementFromPoint(x, y);
       if (!elUnder) return;
@@ -2034,9 +2054,9 @@
       finishDrag(false);
     }
 
-    document.addEventListener("pointermove", (e) => handlePointerMove(e), { passive: true });
-    document.addEventListener("pointerup", (e) => handlePointerUp(e), { passive: true });
-    document.addEventListener("pointercancel", () => finishDrag(true), { passive: true });
+	document.addEventListener("pointermove", (e) => handlePointerMove(e), { passive: false });
+	document.addEventListener("pointerup", (e) => handlePointerUp(e), { passive: false });
+	document.addEventListener("pointercancel", () => finishDrag(true), { passive: false });	
 
     document.addEventListener("pointerdown", (e) => {
       // appui long sur une ligne = déplacer (magasins + articles)
@@ -2050,7 +2070,7 @@
       if (isItem && ui.screen !== "store") return;
 
       // évite les conflits avec les contrôles
-      if (e.target.closest('[data-action="store-gear"], [data-action="item-gear"], .checkbox, .stepper, .searchbar, input, textarea, .modalOverlay')) return;
+      if (e.target.closest('[data-action="store-gear"], [data-action="item-gear"], [data-action="add-store"], [data-action="add-item"], [data-action="store-menu"], [data-action="toggle-search"], [data-action="toggle-bought"], [data-action="toggle-planned"], [data-action="qty-inc"], [data-action="qty-dec"], .checkbox, .stepper, .searchbar, input, textarea, .modalOverlay')) return;
 
       const id = isStore ? rowEl.dataset.rowStore : rowEl.dataset.itemRow;
       if (!id) return;
