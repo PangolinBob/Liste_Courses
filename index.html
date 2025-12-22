@@ -69,7 +69,7 @@
       --border: rgba(255,255,255,.24);
 
       --btn: rgba(255,255,255,.18);
-      --btn-hover: rgba(255,255,255,.14);
+      --btn-hover: rgba(255,255,255,.24);
 
       --icon: rgba(255,255,255,.82);
 
@@ -211,7 +211,7 @@
       margin-bottom: 12px;
     }
     .title {
-      font-size: 22px;
+      font-size: 28px;
       font-weight: 750;
       letter-spacing: .2px;
     }
@@ -266,14 +266,26 @@
       border-color: rgba(239,68,68,.25);
     }
 
-    .btn.flat {
-      background: transparent;
-      border-color: transparent;
-    }
-    .btn.flat:hover {
-      background: var(--btn);
-      border-color: var(--border);
-    }
+	.btn.flat {
+	  background: transparent;
+	  border-color: transparent;
+	}
+
+	/* iPhone (pas de survol) : en dark, on rend les "flat" visibles */
+	[data-theme="dark"] .btn.flat {
+	  background: rgba(255,255,255,.10);
+	  border-color: rgba(255,255,255,.18);
+	}
+	[data-theme="dark"] .btn.flat:active {
+	  background: rgba(255,255,255,.16);
+	  border-color: rgba(255,255,255,.26);
+	}
+
+	/* desktop : le survol reste agréable */
+	.btn.flat:hover {
+	  background: var(--btn-hover);
+	  border-color: var(--border);
+	}
 
     .icon {
       width: 18px;
@@ -308,7 +320,7 @@
       gap: 10px;
       padding: 10px 10px;
       border-radius: var(--radius-md);
-      border: 1px solid rgba(255,255,255,0);
+      border: 1px solid var(--border);
       transition: background 160ms ease, border-color 160ms ease, transform 120ms ease;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
@@ -2191,4 +2203,3 @@
   </script>
 </body>
 </html>
-
