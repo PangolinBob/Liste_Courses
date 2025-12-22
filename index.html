@@ -211,7 +211,7 @@
       margin-bottom: 12px;
     }
     .title {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 750;
       letter-spacing: .2px;
     }
@@ -367,7 +367,7 @@
       margin-bottom: 10px;
     }
     .store-header .store-title {
-      font-size: 22px;
+      font-size: 17px;
       font-weight: 780;
       letter-spacing: .2px;
       text-align: center;
@@ -409,7 +409,7 @@
     /* item rows */
     .item-row {
       display: grid;
-      grid-template-columns: 44px 90px 1fr 40px;
+      grid-template-columns: 90px 1fr 40px;
       gap: 10px;
       align-items: center;
       padding: 8px 10px;
@@ -424,9 +424,9 @@
       background: rgba(0,0,0,0);
     }
 
-    .item-row.planned:not(.bought) {
-      background: rgba(34,197,94,.25);
-      border-color: rgba(34,197,94,.35);
+    .item-row.planned {
+      background: rgba(34,197,94,.13);
+      border-color: rgba(34,197,94,.22);
     }
 	
 	.item-row .item-name {
@@ -434,9 +434,8 @@
 	  font-weight: 740;
 	  letter-spacing: .1px;
 	  line-height: 1.15;
-	  padding: 10px 10px;
-	  margin: -10px -10px;
-	  border-radius: 12px;
+	  padding: 0;
+	  margin: 0;
 	}
 	
     .item-row.bought {
@@ -1318,7 +1317,7 @@
     }
 
     function renderStore(store) {
-      const rest = store.items.filter(it => it.planned && !it.bought).length;
+      const rest = store.items.filter(it => it.planned).length;
 
       const filterOn = ui.filterOn;
       const searchOpen = ui.searchOpen;
@@ -1327,35 +1326,28 @@
       let items = store.items.slice();
 
       if (filterOn) {
-        items = items.filter(it => it.planned && !it.bought);
+        items = items.filter(it => it.planned);
       }
       if (q) {
         items = items.filter(it => normalizeKey(it.name).includes(q));
       }
 
-      const itemsHtml = items.map(it => {
-        const plannedClass = (it.planned && !it.bought) ? "planned" : "";
-        const boughtClass = it.bought ? "bought" : "";
-        return `
-          <div class="item-row card ${plannedClass} ${boughtClass}" data-item-row="${it.id}">
-            <button class="checkbox ${it.bought ? "checked" : ""}" data-action="toggle-bought" data-id="${it.id}" aria-label="Acheté">
-              <span class="mark">${icon("check")}</span>
-            </button>
+		const itemsHtml = items.map(it => {
+		  const plannedClass = it.planned ? "planned" : "";
+		  return `
+			<div class="item-row card ${plannedClass}" data-item-row="${it.id}" data-action="toggle-planned" data-id="${it.id}">
+			  <div class="stepper" aria-label="Quantité">
+				<button data-action="qty-dec" data-id="${it.id}" aria-label="Baisser la quantité" ${it.qty <= 1 ? "disabled" : ""}>-</button>
+				<div class="qty" aria-label="Quantité">${it.qty}</div>
+				<button data-action="qty-inc" data-id="${it.id}" aria-label="Augmenter la quantité">+</button>
+			  </div>
 
-            <div class="stepper" aria-label="Quantité">
-              <button data-action="qty-dec" data-id="${it.id}" aria-label="Baisser la quantité" ${it.qty <= 1 ? "disabled" : ""}>-</button>
-              <div class="qty" aria-label="Quantité">${it.qty}</div>
-              <button data-action="qty-inc" data-id="${it.id}" aria-label="Augmenter la quantité">+</button>
-            </div>
+			  <div class="item-name">${escapeHtml(it.name)}</div>
 
-            <button class="btn flat" data-action="toggle-planned" data-id="${it.id}"
-              style="justify-content:flex-start; padding: 10px 12px; border-radius: 16px; border: none; background: transparent;">
-              <div class="item-name">${escapeHtml(it.name)}</div>
-            </button>
-            <button class="btn icon flat" data-action="item-gear" data-id="${it.id}" aria-label="Options article">${icon("gear")}</button>
-          </div>
-        `;
-      }).join("");
+			  <button class="btn icon flat" data-action="item-gear" data-id="${it.id}" aria-label="Options article">${icon("gear")}</button>
+			</div>
+		  `;
+		}).join("");
 
       appEl.innerHTML = `
         <div class="store-header">
@@ -1558,31 +1550,7 @@
         it.planned = !it.planned;
         saveAppData();
 
-        if (ui.filterOn && (!it.planned || it.bought)) {
-          animateRemoval(id);
-        } else {
-          render();
-        }
-        return;
-      }
-
-      if (action === "toggle-bought") {
-        const store = getStore(ui.storeId);
-        if (!store) return;
-        const it = getItem(store, id);
-        if (!it) return;
-
-        pushUndo();
-        it.bought = !it.bought;
-        saveAppData();
-
-        const box = e.target.closest(".checkbox");
-        if (box) {
-          box.classList.add("flip");
-          setTimeout(() => box.classList.remove("flip"), 280);
-        }
-
-        if (ui.filterOn && (!it.planned || it.bought)) {
+        if (ui.filterOn && !it.planned) {
           animateRemoval(id);
         } else {
           render();
@@ -1692,13 +1660,12 @@
         if (choice === "new") {
           const ok = await showConfirm({
             title: "Nouvelle course",
-            message: "Décocher les achetés et remettre tous les articles en “pas prévu”. Les quantités restent.",
+            message: "Remettre tous les articles en “pas prévu”. Les quantités restent.",
             okText: "OK"
           });
           if (!ok) return;
           pushUndo();
           for (const it of store.items) {
-            it.bought = false;
             it.planned = false;
           }
           saveAppData();
@@ -2224,7 +2191,3 @@
   </script>
 </body>
 </html>
-
-
-
-
