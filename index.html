@@ -94,6 +94,19 @@
       overflow-x: hidden;
     }
 
+    /* anti sélection / menu iOS */
+    body, .btn, .row, .item-row, .store-header, .store-title, .name, .item-name, .pill, .title {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    input, textarea {
+      -webkit-user-select: text;
+      user-select: text;
+      -webkit-touch-callout: default;
+    }
+
+
     /* grain */
     body::before {
       content: "";
@@ -149,7 +162,7 @@
         linear-gradient(180deg, var(--bg-a), var(--bg-b));
     }
 
-    body.ready #splash {
+    body.entered #splash {
       opacity: 0;
       pointer-events: none;
       transition: opacity 260ms ease;
@@ -290,7 +303,7 @@
 
     .row {
       display: grid;
-      grid-template-columns: 36px 1fr auto;
+      grid-template-columns: 1fr auto;
       align-items: center;
       gap: 10px;
       padding: 10px 10px;
@@ -328,7 +341,7 @@
 
     /* store rows */
     .store-row {
-      grid-template-columns: 38px 1fr auto;
+      grid-template-columns: 1fr auto;
       padding: 10px;
     }
     .store-row .btn.icon {
@@ -391,7 +404,7 @@
     /* item rows */
     .item-row {
       display: grid;
-      grid-template-columns: 44px 90px 1fr 40px 40px;
+      grid-template-columns: 44px 90px 1fr 40px;
       gap: 10px;
       align-items: center;
       padding: 8px 10px;
@@ -778,7 +791,7 @@
       body.ready #app { transition: none; }
       .checkbox.flip { animation: none; }
       #splash, .splash-inner { animation: none; }
-      body.ready #splash { transition: none; }
+      body.entered #splash { transition: none; }
       .item-row { transition: none; }
       .modalOverlay, .modal, .sheet, .toast { transition: none; }
     }
@@ -885,6 +898,7 @@
     const toastRoot = $("#toastRoot");
 
     let undoStack = []; // snapshots en mémoire
+    let suppressClickUntil = 0;
 
     const ui = {
       screen: "home",
@@ -1006,7 +1020,10 @@
         case "plus": return `
           <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14" ${common}></path><path d="M5 12h14" ${common}></path></svg></span>`;
         case "gear": return `
-          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" ${common}></path><path d="M19.4 15a7.9 7.9 0 0 0 .1-1l2-1.2-2-3.4-2.3.5a7.6 7.6 0 0 0-1.7-1L15 4h-6l-.5 2.3a7.6 7.6 0 0 0-1.7 1L4.5 7.8l-2 3.4 2 1.2a7.9 7.9 0 0 0 .1 1L2.5 16.2l2 3.4 2.3-.5a7.6 7.6 0 0 0 1.7 1L9 20h6l.5-2.3a7.6 7.6 0 0 0 1.7-1l2.3.5 2-3.4-2.1-1.2Z" ${common}></path></svg></span>`;
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.5a2 2 0 0 1-1 1.74l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.73l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" ${common}></path>
+            <circle cx="12" cy="12" r="3" ${common}></circle>
+          </svg></span>`;
         case "back": return `
           <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" ${common}></path></svg></span>`;
         case "more": return `
@@ -1249,8 +1266,6 @@
 
       const storesHtml = appData.stores.map(s => `
         <div class="row store-row card" data-row-store="${s.id}">
-          <button class="btn icon flat handle" data-action="drag-store" data-id="${s.id}" aria-label="Déplacer">${icon("handle")}</button>
-
           <button class="btn flat" data-action="open-store" data-id="${s.id}" style="justify-content:flex-start; padding: 10px 12px; border-radius: 16px; border: none; background: transparent;">
             <div class="name">${escapeHtml(s.name)}</div>
           </button>
@@ -1288,13 +1303,9 @@
               <div class="pill">Données : <strong>sur cet iPhone</strong></div>
             </div>
           </div>
-
-          <div class="hint">
-            Astuce : sur iPhone, ouvre dans Safari puis “Ajouter à l’écran d’accueil” pour l’avoir comme une vraie appli.
-          </div>
         </div>
 
-        <input id="fileInput" type="file" accept="application/json" style="display:none" />
+        <input id="fileInput" type="file" accept=".json,application/json" style="display:none" />
       `;
     }
 
@@ -1333,8 +1344,6 @@
               style="justify-content:flex-start; padding: 10px 12px; border-radius: 16px; border: none; background: transparent;">
               <div class="item-name">${escapeHtml(it.name)}</div>
             </button>
-
-            <button class="btn icon flat handle" data-action="drag-item" data-id="${it.id}" aria-label="Déplacer">${icon("handle")}</button>
             <button class="btn icon flat" data-action="item-gear" data-id="${it.id}" aria-label="Options article">${icon("gear")}</button>
           </div>
         `;
@@ -1395,7 +1404,17 @@
        Actions (clics)
     ---------------------------- */
 
+    // désactive le menu contextuel iOS (sauf champs de texte)
+    document.addEventListener("contextmenu", (e) => {
+      if (e.target && e.target.closest("input, textarea")) return;
+      e.preventDefault();
+    });
+
     document.addEventListener("click", async (e) => {
+      if (Date.now() < suppressClickUntil) {
+        e.preventDefault();
+        return;
+      }
       const el = e.target.closest("[data-action]");
       if (!el) return;
 
@@ -1722,28 +1741,54 @@
     /* ----------------------------
        Export / Import
     ---------------------------- */
-    function exportToFile() {
+    async function exportToFile() {
       try {
         const exportedAt = nowISO();
-        const blob = new Blob([JSON.stringify({ exportedAt, appData }, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
 
         const d = new Date();
         const stamp = d.toISOString().slice(0,10);
         const filename = `Courses-${stamp}.json`;
 
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 800);
+        const payload = JSON.stringify({ exportedAt, appData }, null, 2);
+        const blob = new Blob([payload], { type: "application/json" });
 
-        appData.lastBackupISO = exportedAt;
-        saveAppData();
-        render();
-        toast("Sauvegarde créée");
+        // iPhone : propose "Enregistrer dans Fichiers" via Partager
+        let done = false;
+        if (navigator.share && navigator.canShare) {
+          try {
+            const file = new File([blob], filename, { type: "application/json" });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({ files: [file], title: "Sauvegarde Liste de courses" });
+              done = true;
+            }
+          } catch (err) {
+            // Annulé = on ne fait rien
+            if (err && err.name === "AbortError") {
+              toast("Sauvegarde annulée");
+              return;
+            }
+            // sinon, on tombera sur le téléchargement
+          }
+        }
+
+        if (!done) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 800);
+          done = true;
+        }
+
+        if (done) {
+          appData.lastBackupISO = exportedAt;
+          saveAppData();
+          render();
+          toast("Sauvegarde créée");
+        }
       } catch {
         toast("Sauvegarde impossible");
       }
@@ -1791,6 +1836,7 @@
           toast("Restauration impossible");
         }
       };
+      toast("Choisis le fichier de sauvegarde (.json)");
       input.click();
     }
 
@@ -1872,6 +1918,9 @@
        Drag & drop (magasins + articles)
     ---------------------------- */
     let dragCtx = null;
+    const preventScrollWhileDragging = (ev) => {
+      if (dragCtx && dragCtx.active) ev.preventDefault();
+    };
 
     function startDrag({ type, id, pointerId, startX, startY, rowEl, containerEl }) {
       const rect = rowEl.getBoundingClientRect();
@@ -1907,6 +1956,7 @@
 
       document.body.style.userSelect = "none";
       document.body.style.cursor = "grabbing";
+      document.addEventListener("touchmove", preventScrollWhileDragging, { passive: false });
       moveGhost(startX, startY);
     }
 
@@ -1928,6 +1978,7 @@
 
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
+      document.removeEventListener("touchmove", preventScrollWhileDragging);
       dragCtx.active = false;
 
       if (!cancel) {
@@ -1988,18 +2039,23 @@
     document.addEventListener("pointercancel", () => finishDrag(true), { passive: true });
 
     document.addEventListener("pointerdown", (e) => {
-      const h = e.target.closest('[data-action="drag-store"], [data-action="drag-item"]');
-      if (!h) return;
-
-      e.preventDefault();
-      const action = h.dataset.action;
-      const id = h.dataset.id;
-      const pointerId = e.pointerId;
-
-      const rowSelector = action === "drag-store" ? ".store-row" : ".item-row";
-      const rowEl = h.closest(rowSelector);
+      // appui long sur une ligne = déplacer (magasins + articles)
+      const rowEl = e.target.closest(".store-row, .item-row");
       if (!rowEl) return;
 
+      const isStore = rowEl.classList.contains("store-row");
+      const isItem  = rowEl.classList.contains("item-row");
+
+      if (isStore && ui.screen !== "home") return;
+      if (isItem && ui.screen !== "store") return;
+
+      // évite les conflits avec les contrôles
+      if (e.target.closest('[data-action="store-gear"], [data-action="item-gear"], .checkbox, .stepper, .searchbar, input, textarea, .modalOverlay')) return;
+
+      const id = isStore ? rowEl.dataset.rowStore : rowEl.dataset.itemRow;
+      if (!id) return;
+
+      const pointerId = e.pointerId;
       const containerEl = rowEl.parentElement;
       if (!containerEl) return;
 
@@ -2038,8 +2094,9 @@
       timer = setTimeout(() => {
         cleanup();
         if (moved) return;
+        suppressClickUntil = Date.now() + 520;
         startDrag({
-          type: action === "drag-store" ? "store" : "item",
+          type: isStore ? "store" : "item",
           id,
           pointerId,
           startX,
@@ -2047,6 +2104,9 @@
           rowEl,
           containerEl
         });
+      }, 240);
+    });
+
       }, 220);
     });
 
@@ -2054,6 +2114,29 @@
        Boot
     ---------------------------- */
     render();
+
+    const splashEl = document.getElementById("splash");
+    let splashDone = false;
+    const enterApp = () => {
+      if (splashDone) return;
+      splashDone = true;
+      // revient toujours à l’accueil au démarrage
+      ui.screen = "home";
+      ui.storeId = null;
+      ui.searchOpen = false;
+      ui.searchQuery = "";
+      document.body.classList.add("entered");
+      if (splashEl) splashEl.setAttribute("aria-hidden", "true");
+      render();
+    };
+
+    if (splashEl) {
+      splashEl.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        enterApp();
+      }, { passive: false });
+    }
+
     window.addEventListener("load", () => {
       setTimeout(() => {
         document.body.classList.remove("loading");
