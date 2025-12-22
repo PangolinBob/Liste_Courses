@@ -203,21 +203,35 @@
     }
 
     /* top bar */
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
+	.topbar {
+	  position: relative;
+	  display: flex;
+	  align-items: center;
+	  justify-content: flex-end; /* l’icône va à droite */
+	  gap: 12px;
+	  margin-bottom: 12px;
+	  min-height: 44px;
+	}
+	
     .title {
       font-size: 28px;
       font-weight: 750;
-      letter-spacing: .2px;
+      letter-spacing: .5px;
     }
+	
+	.topbar .title {
+	  position: absolute;
+	  left: 50%;
+	  transform: translateX(-50%);
+	  width: calc(100% - 56px); /* laisse la place au bouton à droite */
+	  text-align: center;
+	  pointer-events: none; /* évite de bloquer le clic sur l’icône */
+	}
+	
     .topbar .right {
       display: flex;
       gap: 10px;
+	  .topbar .right { margin-left: auto; }
       align-items: center;
     }
 
@@ -365,7 +379,7 @@
       margin: 0;
 	  
 	  font-size: 22px;
-	  font-weight: 750;
+	  font-weight: 500;
 	  letter-spacing: .2px;
 	  line-height: 1.15;	  
     }
@@ -443,7 +457,7 @@
 	
 	.item-row .item-name {
 	  font-size: 18px;
-	  font-weight: 740;
+	  font-weight: 500;
 	  letter-spacing: .1px;
 	  line-height: 1.15;
 	  padding: 0;
@@ -706,9 +720,9 @@
     }
     .sheet .title {
       padding: 14px 14px 10px 14px;
-      font-size: 14px;
+      font-size: 18px;
       font-weight: 850;
-      letter-spacing: .2px;
+      letter-spacing: .3px;
       border-bottom: 1px solid var(--border);
     }
     .sheet .items {
@@ -723,7 +737,7 @@
       padding: 14px;
       border-bottom: 1px solid var(--border);
       cursor: pointer;
-      font-weight: 750;
+      font-weight: 500;
       background: transparent;
       -webkit-tap-highlight-color: transparent;
     }
@@ -1370,8 +1384,8 @@
         </div>
 
         <div class="meta-row">
-          <div class="pill">reste : <strong>${rest}</strong></div>
-          <div class="pill">filtre : <strong>${filterOn ? "ON" : "OFF"}</strong></div>
+          <div class="pill">Reste : <strong>${rest}</strong></div>
+          <div class="pill">Filtre : <strong>${filterOn ? "ON" : "OFF"}</strong></div>
         </div>
 
         <div class="searchbar ${searchOpen ? "open" : ""}">
