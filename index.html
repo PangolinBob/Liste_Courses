@@ -1,559 +1,2067 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-  <link rel="apple-touch-icon" href="IconCourses.png">
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Liste Courses" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0b1020" />
   <title>Liste de courses</title>
+
+  <!-- Icônes -->
+  <link rel="icon" href="IconCourses.png" />
+  <link rel="apple-touch-icon" href="IconCourses.png" />
+
   <style>
-    :root{
-      --bg: #f6f7fb;
-      --card: #ffffff;
-      --text: #14161a;
-      --muted: #6b7280;
-      --line: rgba(20,22,26,.10);
-      --shadow: 0 16px 40px rgba(16,24,40,.10);
-      --radius: 18px;
-      --btn: #111827;
-      --btnText: #ffffff;
+    :root {
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --radius-sm: 12px;
+
+      --pad: 16px;
+      --pad-sm: 12px;
+      --gap: 12px;
+
+      --shadow: 0 12px 32px rgba(0,0,0,.14);
+      --shadow-soft: 0 10px 24px rgba(0,0,0,.10);
+
+      --focus: 0 0 0 3px rgba(34,197,94,.28);
+      --accent: #22c55e; /* vert prévu */
+      --accent-2: #16a34a;
+
       --danger: #ef4444;
-      --focus: rgba(59,130,246,.25);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root{
-        --bg:#0b0f17;
-        --card:#0f1623;
-        --text:#eef2ff;
-        --muted:#a5b4fc;
-        --line: rgba(238,242,255,.10);
-        --shadow: 0 18px 50px rgba(0,0,0,.55);
-        --btn:#eef2ff;
-        --btnText:#0b0f17;
-        --danger:#fb7185;
-        --focus: rgba(167,139,250,.25);
-      }
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      background: radial-gradient(1200px 800px at 20% 10%, rgba(99,102,241,.18), transparent 60%),
-                  radial-gradient(900px 700px at 80% 0%, rgba(236,72,153,.14), transparent 55%),
-                  var(--bg);
-      color:var(--text);
-      display:flex;
-      justify-content:center;
-      padding:20px 14px 28px;
-    }
-    .app{
-      width:min(820px, 100%);
-      background:var(--card);
-      border:1px solid var(--line);
-      box-shadow: var(--shadow);
-      border-radius: var(--radius);
-      overflow:hidden;
-    }
-    header{
-      padding:18px 18px 12px;
-      border-bottom:1px solid var(--line);
-      display:flex;
-      gap:12px;
-      align-items:flex-start;
-      justify-content:space-between;
-      flex-wrap:wrap;
-    }
-    .title{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-      min-width: 220px;
-    }
-    h1{
-      font-size:18px;
-      margin:0;
-      letter-spacing:.2px;
-    }
-    .sub{
-      margin:0;
-      font-size:13px;
-      color:var(--muted);
-      line-height:1.35;
-    }
-    main{padding:16px 18px 18px}
-    form{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      margin-bottom:12px;
-    }
-    .inputWrap{
-      flex:1;
-      position:relative;
-    }
-    input[type="text"]{
-      width:100%;
-      padding:12px 12px 12px 40px;
-      border-radius: 14px;
-      border:1px solid var(--line);
-      background:transparent;
-      color:var(--text);
-      outline:none;
-      font-size:15px;
-      transition: box-shadow .15s ease, border-color .15s ease;
-    }
-    input[type="text"]:focus{
-      box-shadow: 0 0 0 4px var(--focus);
-      border-color: rgba(59,130,246,.55);
-    }
-    .spark{
-      position:absolute;
-      left:12px; top:50%;
-      transform:translateY(-50%);
-      opacity:.85;
-      font-size:16px;
-      user-select:none;
-    }
-    button{
-      border:0;
-      border-radius: 14px;
-      padding:12px 14px;
-      font-size:14px;
-      font-weight:650;
-      cursor:pointer;
-      background: var(--btn);
-      color: var(--btnText);
-      transition: transform .06s ease, opacity .15s ease, filter .15s ease;
-      white-space:nowrap;
-    }
-    button:active{transform: translateY(1px)}
-    button.secondary{
-      background: transparent;
-      color: var(--text);
-      border: 1px solid var(--line);
-    }
-    button.danger{
-      background: transparent;
-      color: var(--danger);
-      border: 1px solid rgba(239,68,68,.35);
-    }
-    button:disabled{
-      opacity:.55;
-      cursor:not-allowed;
-    }
-    .bar{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      margin: 10px 0 12px;
-      flex-wrap:wrap;
-    }
-    .count{
-      font-size:13px;
-      color:var(--muted);
-    }
-    .barActions{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
+      --warning: #f59e0b;
+
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+
+      --bg-a: #f6f8ff;
+      --bg-b: #e9eefc;
+      --bg-c: #fdfefe;
+
+      --text: #0b1220;
+      --muted: rgba(11,18,32,.62);
+
+      --card: rgba(255,255,255,.70);
+      --card-strong: rgba(255,255,255,.82);
+      --border: rgba(11,18,32,.10);
+
+      --btn: rgba(11,18,32,.08);
+      --btn-hover: rgba(11,18,32,.12);
+
+      --icon: rgba(11,18,32,.75);
+
+      --grain-opacity: .06;
+      --top-safe: env(safe-area-inset-top);
+      --bot-safe: env(safe-area-inset-bottom);
     }
 
-    ul.list{
-      list-style:none;
-      padding:0;
-      margin:0;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-    }
-    .row{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:12px 12px;
-      border:1px solid var(--line);
-      border-radius: 16px;
-      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.02));
-    }
-    .check{
-      width:22px; height:22px;
-      accent-color: #22c55e;
-      cursor:pointer;
-    }
-    .text{
-      flex:1;
-      font-size:15px;
-      line-height:1.2;
-      word-break:break-word;
-      cursor:pointer;
-    }
-    .hint{
-      font-size:12px;
-      color:var(--muted);
-      margin-top:2px;
-      user-select:none;
-    }
-    .miniBtns{
-      display:flex;
-      gap:6px;
-      align-items:center;
-    }
-    .iconBtn{
-      width:38px;
-      height:38px;
-      padding:0;
-      display:grid;
-      place-items:center;
-      background: transparent;
-      color: var(--text);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      font-size:16px;
-    }
-    .iconBtn:hover{filter: brightness(1.02)}
-    .empty{
-      margin:14px 2px 0;
-      padding:14px 12px;
-      border:1px dashed var(--line);
-      border-radius: 16px;
-      color:var(--muted);
-      font-size:14px;
+    [data-theme="dark"] {
+      --bg-a: #0b1020;
+      --bg-b: #091326;
+      --bg-c: #0f172a;
+
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.62);
+
+      --card: rgba(15,23,42,.55);
+      --card-strong: rgba(15,23,42,.70);
+      --border: rgba(255,255,255,.12);
+
+      --btn: rgba(255,255,255,.10);
+      --btn-hover: rgba(255,255,255,.14);
+
+      --icon: rgba(255,255,255,.82);
+
+      --grain-opacity: .08;
+      --shadow: 0 16px 46px rgba(0,0,0,.36);
+      --shadow-soft: 0 14px 32px rgba(0,0,0,.28);
+      --focus: 0 0 0 3px rgba(34,197,94,.26);
     }
 
-    /* Toast (Annuler) */
-    .toast{
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 20% -10%, var(--bg-c), transparent 60%),
+        radial-gradient(900px 700px at 110% 10%, rgba(34,197,94,.16), transparent 55%),
+        linear-gradient(180deg, var(--bg-a), var(--bg-b));
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    /* grain */
+    body::before {
+      content: "";
       position: fixed;
-      left: 50%;
-      bottom: 16px;
-      transform: translateX(-50%);
-      background: rgba(17,24,39,.92);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 16px;
-      padding: 12px 12px;
-      display:flex;
-      gap:10px;
-      align-items:center;
-      box-shadow: 0 18px 60px rgba(0,0,0,.35);
-      max-width: min(780px, calc(100% - 20px));
-      width: fit-content;
-      opacity: 0;
-      pointer-events:none;
-      transition: opacity .18s ease, transform .18s ease;
-    }
-    .toast.show{
-      opacity: 1;
-      pointer-events:auto;
-      transform: translateX(-50%) translateY(-2px);
-    }
-    .toast span{
-      font-size:13px;
-      opacity:.95;
-    }
-    .toast button{
-      padding:10px 12px;
-      border-radius: 14px;
-      background: #fff;
-      color: #111827;
-      font-weight:750;
+      inset: 0;
+      pointer-events: none;
+      background-image: url("data:image/png;base64,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");
+      background-size: 140px 140px;
+      opacity: var(--grain-opacity);
+      mix-blend-mode: soft-light;
+      transform: translateZ(0);
     }
 
-    @media (max-width: 520px){
-      main{padding:14px 12px 16px}
-      header{padding:16px 12px 10px}
-      form{gap:8px}
-      button{padding:12px 12px}
-      .iconBtn{width:40px;height:40px}
+    /* app container */
+    #app {
+      min-height: 100dvh;
+      padding: calc(var(--pad) + var(--top-safe)) var(--pad) calc(var(--pad) + var(--bot-safe)) var(--pad);
+      max-width: 560px;
+      margin: 0 auto;
+      transform-origin: 50% 30%;
+    }
+
+    /* entrance wow */
+    body.loading #app {
+      transform: scale(1.03);
+      opacity: .0;
+      filter: blur(10px);
+    }
+    body.ready #app {
+      transition: transform 320ms cubic-bezier(.2,.8,.2,1), opacity 260ms ease, filter 320ms ease;
+      transform: scale(1);
+      opacity: 1;
+      filter: blur(0);
+    }
+
+    /* splash */
+    #splash {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      z-index: 50;
+      background:
+        radial-gradient(900px 600px at 25% -10%, rgba(255,255,255,.45), transparent 55%),
+        radial-gradient(900px 700px at 110% 10%, rgba(34,197,94,.22), transparent 55%),
+        linear-gradient(180deg, var(--bg-a), var(--bg-b));
+      padding: 24px;
+    }
+    [data-theme="dark"] #splash {
+      background:
+        radial-gradient(900px 600px at 25% -10%, rgba(255,255,255,.06), transparent 55%),
+        radial-gradient(900px 700px at 110% 10%, rgba(34,197,94,.18), transparent 55%),
+        linear-gradient(180deg, var(--bg-a), var(--bg-b));
+    }
+
+    body.ready #splash {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 260ms ease;
+    }
+
+    .splash-inner {
+      display: grid;
+      gap: 12px;
+      place-items: center;
+      text-align: center;
+      transform: translateY(8px) scale(.96);
+      opacity: .0;
+      animation: splashIn 260ms cubic-bezier(.2,.8,.2,1) forwards;
+    }
+    @keyframes splashIn {
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    .splash-logo {
+      width: 84px; height: 84px;
+      border-radius: 22px;
+      box-shadow: var(--shadow-soft);
+      background: rgba(255,255,255,.6);
+      border: 1px solid var(--border);
+      object-fit: cover;
+      transform: translateZ(0);
+    }
+    .splash-title {
+      font-weight: 700;
+      letter-spacing: .2px;
+      font-size: 18px;
+    }
+    .splash-sub {
+      font-size: 13px;
+      color: var(--muted);
+      max-width: 320px;
+      line-height: 1.35;
+    }
+
+    /* top bar */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .title {
+      font-size: 20px;
+      font-weight: 750;
+      letter-spacing: .2px;
+    }
+    .topbar .right {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* buttons */
+    .btn {
+      -webkit-tap-highlight-color: transparent;
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--btn);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-weight: 650;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 120ms ease, background 160ms ease, border-color 160ms ease, opacity 160ms ease;
+      box-shadow: none;
+    }
+    .btn:hover { background: var(--btn-hover); }
+    .btn:active { transform: scale(.98); }
+    .btn:focus-visible { outline: none; box-shadow: var(--focus); }
+
+    .btn.icon {
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border-radius: 14px;
+    }
+
+    .btn.primary {
+      background: rgba(34,197,94,.16);
+      border-color: rgba(34,197,94,.25);
+    }
+    .btn.primary:hover {
+      background: rgba(34,197,94,.20);
+      border-color: rgba(34,197,94,.30);
+    }
+
+    .btn.danger {
+      background: rgba(239,68,68,.14);
+      border-color: rgba(239,68,68,.25);
+    }
+
+    .btn.flat {
+      background: transparent;
+      border-color: transparent;
+    }
+    .btn.flat:hover {
+      background: var(--btn);
+      border-color: var(--border);
+    }
+
+    .icon {
+      width: 18px;
+      height: 18px;
+      display: inline-block;
+      color: var(--icon);
+    }
+    .icon svg { width: 100%; height: 100%; display:block; }
+
+    /* cards & lists */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .card.pad {
+      padding: 12px;
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 10px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(255,255,255,0);
+      transition: background 160ms ease, border-color 160ms ease, transform 120ms ease;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .row:active {
+      transform: scale(.995);
+    }
+
+    .row .name {
+      font-weight: 720;
+      letter-spacing: .1px;
+      line-height: 1.15;
+      padding: 10px 10px;
+      margin: -10px -10px;
+      border-radius: 12px;
+    }
+    .row .name:focus-visible { outline: none; box-shadow: var(--focus); }
+
+    .row .right {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .handle {
+      touch-action: none;
+      cursor: grab;
+    }
+    .handle:active { cursor: grabbing; }
+
+    /* store rows */
+    .store-row {
+      grid-template-columns: 38px 1fr auto;
+      padding: 10px;
+    }
+    .store-row .btn.icon {
+      width: 40px; height: 40px;
+      border-radius: 14px;
+    }
+    .store-row .name {
+      padding: 8px 10px;
+      margin: 0;
+    }
+
+    /* header for store screen */
+    .store-header {
+      display: grid;
+      grid-template-columns: 44px 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .store-header .store-title {
+      font-size: 17px;
+      font-weight: 780;
+      letter-spacing: .2px;
+      text-align: center;
+      padding: 8px 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--card-strong);
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--muted);
+      width: fit-content;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .pill strong {
+      color: var(--text);
+      font-weight: 820;
+    }
+
+    .meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 10px 2px 14px 2px;
+      flex-wrap: wrap;
+    }
+
+    /* item rows */
+    .item-row {
+      display: grid;
+      grid-template-columns: 44px 90px 1fr 40px 40px;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(255,255,255,0);
+      background: rgba(255,255,255,0);
+      transition: background 160ms ease, border-color 160ms ease, transform 140ms ease, opacity 160ms ease, max-height 200ms ease, margin 200ms ease, padding 200ms ease;
+      overflow: hidden;
+      max-height: 86px;
+    }
+    [data-theme="dark"] .item-row {
+      background: rgba(0,0,0,0);
+    }
+
+    .item-row.planned:not(.bought) {
+      background: rgba(34,197,94,.13);
+      border-color: rgba(34,197,94,.22);
+    }
+    .item-row .item-name {
+      font-weight: 740;
+      letter-spacing: .1px;
+      line-height: 1.15;
+      padding: 10px 10px;
+      margin: -10px -10px;
+      border-radius: 12px;
+    }
+    .item-row.bought {
+      opacity: .55;
+    }
+
+    .item-row.removing {
+      opacity: 0;
+      transform: translateX(14px) scale(.985);
+      max-height: 0;
+      margin-top: 0;
+      margin-bottom: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    /* checkbox with flip wow */
+    .checkbox {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--card-strong);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      transition: background 160ms ease, border-color 160ms ease, transform 120ms ease;
+      transform-style: preserve-3d;
+      perspective: 700px;
+    }
+    .checkbox:active { transform: scale(.98); }
+    .checkbox:focus-visible { outline: none; box-shadow: var(--focus); }
+
+    .checkbox .mark {
+      width: 18px; height: 18px;
+      opacity: 0;
+      transform: scale(.92);
+      transition: opacity 120ms ease, transform 120ms ease;
+    }
+    .checkbox.checked {
+      background: rgba(34,197,94,.18);
+      border-color: rgba(34,197,94,.30);
+    }
+    .checkbox.checked .mark {
+      opacity: 1;
+      transform: scale(1);
+    }
+    .checkbox.flip {
+      animation: flipX 260ms cubic-bezier(.2,.8,.2,1);
+    }
+    @keyframes flipX {
+      0% { transform: rotateX(0deg); }
+      45% { transform: rotateX(180deg); }
+      100% { transform: rotateX(360deg); }
+    }
+
+    /* stepper */
+    .stepper {
+      display: grid;
+      grid-template-columns: 30px 1fr 30px;
+      align-items: center;
+      width: 90px;
+      height: 44px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--card-strong);
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .stepper button {
+      border: none;
+      background: transparent;
+      color: var(--icon);
+      height: 44px;
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: 900;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .stepper button:active {
+      background: rgba(255,255,255,.08);
+    }
+    .stepper button:disabled {
+      opacity: .35;
+      cursor: default;
+    }
+    .stepper .qty {
+      text-align: center;
+      font-weight: 820;
+      font-size: 14px;
+      letter-spacing: .2px;
+    }
+
+    /* search */
+    .searchbar {
+      display: none;
+      margin: 10px 0 8px 0;
+    }
+    .searchbar.open { display: block; }
+    .searchbar .field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--card-strong);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .searchbar input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+      font-family: var(--font);
+    }
+    .searchbar .clear {
+      width: 34px; height: 34px;
+      border-radius: 12px;
+    }
+
+    /* footer blocks */
+    .footer {
+      margin-top: 14px;
+      display: grid;
+      gap: 10px;
+    }
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 370px) {
+      .two { grid-template-columns: 1fr; }
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px dashed var(--border);
+      background: rgba(255,255,255,.20);
+    }
+    [data-theme="dark"] .hint {
+      background: rgba(0,0,0,.12);
+    }
+
+    /* modals */
+    #modalRoot {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      pointer-events: none;
+    }
+    .modalOverlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,.34);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      pointer-events: all;
+      opacity: 0;
+      transition: opacity 160ms ease;
+    }
+    .modalOverlay.open {
+      opacity: 1;
+    }
+    .modal {
+      width: min(520px, 100%);
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      background: var(--card-strong);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transform: translateY(8px) scale(.985);
+      opacity: .0;
+      transition: transform 180ms cubic-bezier(.2,.8,.2,1), opacity 180ms ease;
+    }
+    .modalOverlay.open .modal {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    .modal .head {
+      padding: 14px 14px 10px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .modal .head .h {
+      font-weight: 850;
+      letter-spacing: .2px;
+      font-size: 15px;
+    }
+    .modal .body {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+    .modal .body label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .modal input[type="text"] {
+      width: 100%;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.35);
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+      font-family: var(--font);
+    }
+    [data-theme="dark"] .modal input[type="text"] {
+      background: rgba(0,0,0,.25);
+    }
+    .modal .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      padding-top: 4px;
+    }
+
+    /* action sheet */
+    .sheet {
+      width: min(520px, 100%);
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      background: var(--card-strong);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transform: translateY(12px);
+      opacity: .0;
+      transition: transform 180ms cubic-bezier(.2,.8,.2,1), opacity 180ms ease;
+      align-self: end;
+      margin-bottom: calc(10px + var(--bot-safe));
+    }
+    .modalOverlay.open .sheet {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .sheet .title {
+      padding: 14px 14px 10px 14px;
+      font-size: 14px;
+      font-weight: 850;
+      letter-spacing: .2px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sheet .items {
+      display: grid;
+      gap: 0;
+    }
+    .sheet .item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      font-weight: 750;
+      background: transparent;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sheet .item:active {
+      background: var(--btn);
+    }
+    .sheet .item.danger {
+      color: var(--danger);
+    }
+    .sheet .item:last-child {
+      border-bottom: none;
+    }
+
+    /* toasts */
+    #toastRoot {
+      position: fixed;
+      left: 0;
+      right: 0;
+      top: calc(10px + var(--top-safe));
+      z-index: 70;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      padding: 0 16px;
+    }
+    .toast {
+      pointer-events: none;
+      border-radius: 999px;
+      padding: 10px 14px;
+      background: rgba(15,23,42,.92);
+      color: rgba(255,255,255,.92);
+      font-weight: 700;
+      font-size: 13px;
+      box-shadow: var(--shadow-soft);
+      opacity: 0;
+      transform: translateY(-6px) scale(.98);
+      transition: opacity 180ms ease, transform 180ms ease;
+      max-width: 520px;
+      text-align: center;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    /* empty state */
+    .empty {
+      padding: 18px 14px;
+      border-radius: var(--radius-lg);
+      border: 1px dashed var(--border);
+      background: rgba(255,255,255,.20);
+      color: var(--muted);
+      line-height: 1.35;
+      text-align: center;
+    }
+    [data-theme="dark"] .empty {
+      background: rgba(0,0,0,.12);
+    }
+
+    /* draggable ghost */
+    .ghost {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 80;
+      width: 1px;
+      pointer-events: none;
+      transform: translateZ(0);
+      filter: drop-shadow(0 18px 36px rgba(0,0,0,.26));
+    }
+    .ghost .ghostInner {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      background: var(--card-strong);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .placeholder {
+      opacity: .35;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      body.loading #app { transform: none; opacity: 1; filter: none; }
+      body.ready #app { transition: none; }
+      .checkbox.flip { animation: none; }
+      #splash, .splash-inner { animation: none; }
+      body.ready #splash { transition: none; }
+      .item-row { transition: none; }
+      .modalOverlay, .modal, .sheet, .toast { transition: none; }
     }
   </style>
 </head>
 
-<body>
-  <div class="app" role="application" aria-label="Liste de courses">
-    <header>
-      <div class="title">
-        <h1>Liste de courses</h1>
-        <p class="sub">Ajoute, coche pour supprimer, et c’est sauvegardé ici sur l’appareil.</p>
-      </div>
-    </header>
-
-    <main>
-      <form id="addForm" autocomplete="off">
-        <div class="inputWrap">
-          <div class="spark" aria-hidden="true">🛒</div>
-          <input id="itemInput" type="text" placeholder="Ajouter un produit (ex : Lait)" inputmode="text" />
-        </div>
-        <button id="addBtn" type="submit">Ajouter</button>
-      </form>
-
-      <div class="bar">
-        <div class="count" id="count">0 article</div>
-        <div class="barActions">
-          <button id="copyBtn" type="button" class="secondary">Copier la liste</button>
-          <button id="clearBtn" type="button" class="danger">Tout effacer</button>
-        </div>
-      </div>
-
-      <ul id="list" class="list" aria-label="Articles"></ul>
-      <div id="empty" class="empty" hidden>Rien dans la liste. Ajoute ton premier article.</div>
-    </main>
+<body class="loading" data-theme="dark">
+  <div id="splash" aria-hidden="true">
+    <div class="splash-inner">
+      <img class="splash-logo" src="IconCourses.png" alt="Logo" onerror="this.style.display='none'" />
+      <div class="splash-title">Liste de courses</div>
+      <div class="splash-sub">Simple, rapide, et propre — comme on aime.</div>
+    </div>
   </div>
 
-  <div id="toast" class="toast" aria-live="polite" aria-atomic="true">
-    <span id="toastMsg">Supprimé.</span>
-    <button id="undoBtn" type="button">Annuler</button>
-  </div>
+  <main id="app" role="application" aria-label="Liste de courses">
+    <!-- rendu JS -->
+  </main>
+
+  <div id="modalRoot" aria-live="polite"></div>
+  <div id="toastRoot" aria-live="polite"></div>
 
   <script>
-    (() => {
-      const STORAGE_KEY = "liste_courses_v1_items";
+  (() => {
+    "use strict";
 
-      const $ = (id) => document.getElementById(id);
+    /* ----------------------------
+       Données de base (liste d'origine)
+    ---------------------------- */
+    const ORIGINAL_TEMPLATES = {
+  "Carrefour": [
+    "PQ",
+    "Sopalain",
+    "Lessive",
+    "Soupline",
+    "Savon",
+    "Shampoing",
+    "Farine",
+    "Riz",
+    "Earl Grey",
+    "Thé Vanille",
+    "Infusion 1",
+    "Infusion 2",
+    "Pim's",
+    "Granola",
+    "Mikado",
+    "Chocolat",
+    "Rochers",
+    "Buggles",
+    "Grissins",
+    "Krisprolls",
+    "Confitures",
+    "Rhum",
+    "Coca canette",
+    "Coca bouteille",
+    "Bière",
+    "Beurre Doux",
+    "Beure 1/2 sel"
+  ],
+  "Grand Frais": [
+    "Œufs",
+    "Fromage",
+    "Carottes",
+    "Navets",
+    "Poireaux",
+    "Raisin",
+    "Pommes",
+    "Lard",
+    "Noisettes",
+    "Oignons",
+    "Ail",
+    "Panettone",
+    "P de T",
+    "Infusions",
+    "Tagliatelles"
+  ],
+  "Marie Blachère": [
+    "Baguette",
+    "Pain Noir"
+  ],
+  "Picard": [
+    "Pizzas",
+    "Plats",
+    "Petits pois"
+  ],
+  "Boîte à Fromage": [
+    "Artisou",
+    "Montagne",
+    "Mi Bique"
+  ]
+};
 
-      const addForm = $("addForm");
-      const itemInput = $("itemInput");
-      const listEl = $("list");
-      const emptyEl = $("empty");
-      const countEl = $("count");
-      const copyBtn = $("copyBtn");
-      const clearBtn = $("clearBtn");
+    /* ----------------------------
+       Stockage
+    ---------------------------- */
+    const STORAGE_KEY = "lc_appData_v1";
+    const SCHEMA_VERSION = 1;
 
-      const toast = $("toast");
-      const toastMsg = $("toastMsg");
-      const undoBtn = $("undoBtn");
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-      let items = [];
-      let lastDeleted = null; // { item, index, timeoutId }
+    const appEl = $("#app");
+    const modalRoot = $("#modalRoot");
+    const toastRoot = $("#toastRoot");
 
-      const uid = () => {
-        try {
-          return crypto.randomUUID();
-        } catch (_) {
-          return "id_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
-        }
-      };
+    let undoStack = []; // snapshots en mémoire
 
-      const save = () => {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-        } catch (_) {
-          // si localStorage indisponible, on continue en mémoire
-        }
-      };
+    const ui = {
+      screen: "home",
+      storeId: null,
+      filterOn: false,   // masque pas prévu + acheté
+      searchOpen: false,
+      searchQuery: ""
+    };
 
-      const load = () => {
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (!raw) return [];
-          const parsed = JSON.parse(raw);
-          return Array.isArray(parsed) ? parsed : [];
-        } catch (_) {
-          return [];
-        }
-      };
+    function uid(prefix="") {
+      if (window.crypto && crypto.randomUUID) return prefix + crypto.randomUUID();
+      return prefix + Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
+    }
 
-      const setCount = () => {
-        const n = items.length;
-        countEl.textContent = n + " " + (n <= 1 ? "article" : "articles");
-        copyBtn.disabled = n === 0;
-        clearBtn.disabled = n === 0;
-      };
+    function nowISO() {
+      return new Date().toISOString();
+    }
 
-      const showEmpty = () => {
-        emptyEl.hidden = items.length !== 0;
-      };
+    function formatDateTime(iso) {
+      if (!iso) return "—";
+      try {
+        const d = new Date(iso);
+        return d.toLocaleString("fr-FR", {
+          year: "numeric", month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit"
+        }).replace(",", "");
+      } catch {
+        return "—";
+      }
+    }
 
-      const hideToast = () => {
-        toast.classList.remove("show");
-        if (lastDeleted && lastDeleted.timeoutId) {
-          clearTimeout(lastDeleted.timeoutId);
-          lastDeleted.timeoutId = null;
-        }
-      };
+    function safeTrim(s) {
+      return (s || "").toString().trim().replace(/\s+/g, " ");
+    }
 
-      const showToast = (message) => {
-        toastMsg.textContent = message;
-        toast.classList.add("show");
+    function normalizeKey(s) {
+      return safeTrim(s).toLowerCase();
+    }
 
-        // auto-hide (laisse une chance d'annuler)
-        if (lastDeleted) {
-          if (lastDeleted.timeoutId) clearTimeout(lastDeleted.timeoutId);
-          lastDeleted.timeoutId = setTimeout(() => {
-            lastDeleted = null;
-            hideToast();
-          }, 5000);
-        }
-      };
+    function pickInitialTheme() {
+      const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      return prefersDark ? "dark" : "light";
+    }
 
-      const render = () => {
-        listEl.innerHTML = "";
-
-        items.forEach((it) => {
-          const li = document.createElement("li");
-          li.className = "row";
-          li.dataset.id = it.id;
-
-          const chk = document.createElement("input");
-          chk.type = "checkbox";
-          chk.className = "check";
-          chk.setAttribute("aria-label", "Coche pour supprimer " + it.text);
-          chk.addEventListener("change", () => {
-            if (chk.checked) removeItem(it.id, true);
-          });
-
-          const textWrap = document.createElement("div");
-          textWrap.style.flex = "1";
-
-          const text = document.createElement("div");
-          text.className = "text";
-          text.textContent = it.text;
-          text.title = "Cliquer pour modifier";
-          text.addEventListener("click", () => {
-            const next = prompt("Modifier l’article :", it.text);
-            if (next === null) return;
-            const trimmed = next.trim();
-            if (!trimmed) return;
-            it.text = trimmed;
-            save();
-            render();
-          });
-
-          const hint = document.createElement("div");
-          hint.className = "hint";
-          hint.textContent = "Coche = supprimer";
-
-          textWrap.appendChild(text);
-          textWrap.appendChild(hint);
-
-          const mini = document.createElement("div");
-          mini.className = "miniBtns";
-
-          const delBtn = document.createElement("button");
-          delBtn.type = "button";
-          delBtn.className = "iconBtn";
-          delBtn.textContent = "🗑️";
-          delBtn.setAttribute("aria-label", "Supprimer " + it.text);
-          delBtn.addEventListener("click", () => removeItem(it.id, false));
-
-          mini.appendChild(delBtn);
-
-          li.appendChild(chk);
-          li.appendChild(textWrap);
-          li.appendChild(mini);
-
-          listEl.appendChild(li);
-        });
-
-        setCount();
-        showEmpty();
-      };
-
-      const addItem = (text) => {
-        const cleaned = text.trim();
-        if (!cleaned) return;
-
-        items.unshift({
-          id: uid(),
-          text: cleaned,
-          createdAt: Date.now()
-        });
-
-        save();
-        render();
-      };
-
-      const removeItem = (id, viaCheck) => {
-        const index = items.findIndex(x => x.id === id);
-        if (index === -1) return;
-
-        // si un undo était en attente, on le “fige” (on n'empile pas 10 annulations)
-        lastDeleted = null;
-        hideToast();
-
-        const [removed] = items.splice(index, 1);
-        save();
-        render();
-
-        lastDeleted = { item: removed, index, timeoutId: null };
-
-        const msg = (viaCheck ? "Coché → supprimé : " : "Supprimé : ") + removed.text;
-        showToast(msg);
-      };
-
-      const undo = () => {
-        if (!lastDeleted) return;
-
-        const { item, index } = lastDeleted;
-        const safeIndex = Math.min(Math.max(index, 0), items.length);
-
-        items.splice(safeIndex, 0, item);
-        save();
-        render();
-
-        lastDeleted = null;
-        hideToast();
-      };
-
-      const copyList = async () => {
-        const txt = items.map(x => x.text).join("\n");
-        if (!txt) return;
-
-        try {
-          await navigator.clipboard.writeText(txt);
-          lastDeleted = null;
-          hideToast();
-          showToast("Liste copiée dans le presse-papiers.");
-          // pas d'undo ici
-          setTimeout(hideToast, 1400);
-        } catch (_) {
-          // fallback
-          const ta = document.createElement("textarea");
-          ta.value = txt;
-          ta.style.position = "fixed";
-          ta.style.left = "-9999px";
-          document.body.appendChild(ta);
-          ta.select();
-          try { document.execCommand("copy"); } catch(e) {}
-          document.body.removeChild(ta);
-          lastDeleted = null;
-          hideToast();
-          showToast("Liste copiée (mode compatibilité).");
-          setTimeout(hideToast, 1400);
-        }
-      };
-
-      const clearAll = () => {
-        if (items.length === 0) return;
-        const ok = confirm("Tout effacer ? (impossible d’annuler)");
-        if (!ok) return;
-
-        lastDeleted = null;
-        hideToast();
-
-        items = [];
-        save();
-        render();
-      };
-
-      // Events
-      addForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        addItem(itemInput.value);
-        itemInput.value = "";
-        itemInput.focus();
+    function createAppDataFromTemplates() {
+      const stores = Object.keys(ORIGINAL_TEMPLATES).map(name => {
+        const storeId = uid("s_");
+        const items = ORIGINAL_TEMPLATES[name].map(itemName => ({
+          id: uid("i_"),
+          name: itemName,
+          qty: 1,
+          planned: false,
+          bought: false
+        }));
+        return {
+          id: storeId,
+          name,
+          template: name, // sert à "restaurer la liste d'origine"
+          items
+        };
       });
 
-      copyBtn.addEventListener("click", copyList);
-      clearBtn.addEventListener("click", clearAll);
-      undoBtn.addEventListener("click", undo);
+      return {
+        schemaVersion: SCHEMA_VERSION,
+        prefs: {
+          theme: pickInitialTheme()
+        },
+        lastBackupISO: null,
+        stores
+      };
+    }
 
-      // Init
-      items = load();
+    function loadAppData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+
+        // validation light
+        if (!data || typeof data !== "object") return null;
+        if (data.schemaVersion !== SCHEMA_VERSION) return null;
+        if (!Array.isArray(data.stores)) return null;
+
+        // patch prefs
+        data.prefs = data.prefs || {};
+        data.prefs.theme = data.prefs.theme || pickInitialTheme();
+
+        return data;
+      } catch {
+        return null;
+      }
+    }
+
+    function saveAppData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    }
+
+    function applyTheme(theme) {
+      const t = (theme === "dark" || theme === "light") ? theme : pickInitialTheme();
+      document.body.setAttribute("data-theme", t);
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", t === "dark" ? "#0b1020" : "#e9eefc");
+    }
+
+    let appData = loadAppData() || createAppDataFromTemplates();
+    applyTheme(appData.prefs.theme);
+    saveAppData(); // assure un état stable dès le début
+
+    /* ----------------------------
+       UI helpers
+    ---------------------------- */
+    function icon(name) {
+      const common = 'fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"';
+      switch(name) {
+        case "sun": return `
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" ${common}></circle><path d="M12 2v2" ${common}></path><path d="M12 20v2" ${common}></path><path d="M4.93 4.93l1.41 1.41" ${common}></path><path d="M17.66 17.66l1.41 1.41" ${common}></path><path d="M2 12h2" ${common}></path><path d="M20 12h2" ${common}></path><path d="M4.93 19.07l1.41-1.41" ${common}></path><path d="M17.66 6.34l1.41-1.41" ${common}></path></svg></span>`;
+        case "moon": return `
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 12.7A8 8 0 0 1 11.3 3a6.9 6.9 0 1 0 9.7 9.7Z" ${common}></path></svg></span>`;
+        case "plus": return `
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14" ${common}></path><path d="M5 12h14" ${common}></path></svg></span>`;
+        case "gear": return `
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" ${common}></path><path d="M19.4 15a7.9 7.9 0 0 0 .1-1l2-1.2-2-3.4-2.3.5a7.6 7.6 0 0 0-1.7-1L15 4h-6l-.5 2.3a7.6 7.6 0 0 0-1.7 1L4.5 7.8l-2 3.4 2 1.2a7.9 7.9 0 0 0 .1 1L2.5 16.2l2 3.4 2.3-.5a7.6 7.6 0 0 0 1.7 1L9 20h6l.5-2.3a7.6 7.6 0 0 0 1.7-1l2.3.5 2-3.4-2.1-1.2Z" ${common}></path></svg></span>`;
+        case "back": return `
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" ${common}></path></svg></span>`;
+        case "more": return `
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h.01" ${common}></path><path d="M12 12h.01" ${common}></path><path d="M19 12h.01" ${common}></path></svg></span>`;
+        case "search": return `
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" ${common}></circle><path d="M20 20l-3.2-3.2" ${common}></path></svg></span>`;
+        case "handle": return `
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h8" ${common}></path><path d="M8 12h8" ${common}></path><path d="M8 17h8" ${common}></path></svg></span>`;
+        case "check": return `
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" ${common}></path></svg></span>`;
+        case "download": return `
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v10" ${common}></path><path d="M8 11l4 4 4-4" ${common}></path><path d="M4 21h16" ${common}></path></svg></span>`;
+        case "upload": return `
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21V11" ${common}></path><path d="M8 15l4-4 4 4" ${common}></path><path d="M4 3h16" ${common}></path></svg></span>`;
+        default: return "";
+      }
+    }
+
+    function toast(msg) {
+      const el = document.createElement("div");
+      el.className = "toast";
+      el.textContent = msg;
+      toastRoot.innerHTML = "";
+      toastRoot.appendChild(el);
+      requestAnimationFrame(() => el.classList.add("show"));
+      setTimeout(() => {
+        el.classList.remove("show");
+        setTimeout(() => el.remove(), 220);
+      }, 1600);
+    }
+
+    function pushUndo() {
+      undoStack.push(JSON.stringify(appData));
+      if (undoStack.length > 60) undoStack.shift();
+    }
+
+    function doUndo() {
+      if (!undoStack.length) {
+        toast("Rien à annuler");
+        return;
+      }
+      const raw = undoStack.pop();
+      try {
+        appData = JSON.parse(raw);
+        applyTheme(appData.prefs.theme);
+        saveAppData();
+        render();
+        toast("Annulé");
+      } catch {
+        toast("Undo impossible");
+      }
+    }
+
+    function showConfirm({ title, message, okText="OK", cancelText="Annuler", danger=false }) {
+      return new Promise(resolve => {
+        modalRoot.innerHTML = "";
+        const overlay = document.createElement("div");
+        overlay.className = "modalOverlay";
+        overlay.innerHTML = `
+          <div class="modal" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
+            <div class="head">
+              <div class="h">${escapeHtml(title)}</div>
+              <button class="btn icon flat" data-modal-close="1" aria-label="Fermer">${icon("back")}</button>
+            </div>
+            <div class="body">
+              <div style="color: var(--muted); line-height:1.35;">${escapeHtml(message)}</div>
+              <div class="actions">
+                <button class="btn" data-modal-cancel="1">${escapeHtml(cancelText)}</button>
+                <button class="btn ${danger ? "danger" : "primary"}" data-modal-ok="1">${escapeHtml(okText)}</button>
+              </div>
+            </div>
+          </div>
+        `;
+        modalRoot.appendChild(overlay);
+        requestAnimationFrame(() => overlay.classList.add("open"));
+
+        const close = (val) => {
+          overlay.classList.remove("open");
+          setTimeout(() => {
+            modalRoot.innerHTML = "";
+            resolve(val);
+          }, 180);
+        };
+
+        overlay.addEventListener("click", (e) => {
+          if (e.target === overlay) close(false);
+          if (e.target.closest("[data-modal-close]")) close(false);
+          if (e.target.closest("[data-modal-cancel]")) close(false);
+          if (e.target.closest("[data-modal-ok]")) close(true);
+        });
+      });
+    }
+
+    function showPrompt({ title, label="Nom", placeholder="", value="", okText="OK", cancelText="Annuler" }) {
+      return new Promise(resolve => {
+        modalRoot.innerHTML = "";
+        const overlay = document.createElement("div");
+        overlay.className = "modalOverlay";
+        overlay.innerHTML = `
+          <div class="modal" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
+            <div class="head">
+              <div class="h">${escapeHtml(title)}</div>
+              <button class="btn icon flat" data-modal-close="1" aria-label="Fermer">${icon("back")}</button>
+            </div>
+            <div class="body">
+              <div>
+                <label>${escapeHtml(label)}</label>
+                <input type="text" inputmode="text" autocomplete="off" spellcheck="false"
+                  placeholder="${escapeHtml(placeholder)}" value="${escapeAttr(value)}" />
+              </div>
+              <div class="actions">
+                <button class="btn" data-modal-cancel="1">${escapeHtml(cancelText)}</button>
+                <button class="btn primary" data-modal-ok="1">${escapeHtml(okText)}</button>
+              </div>
+            </div>
+          </div>
+        `;
+        modalRoot.appendChild(overlay);
+        requestAnimationFrame(() => overlay.classList.add("open"));
+
+        const input = overlay.querySelector('input');
+        setTimeout(() => input.focus(), 80);
+
+        const close = (val) => {
+          overlay.classList.remove("open");
+          setTimeout(() => {
+            modalRoot.innerHTML = "";
+            resolve(val);
+          }, 180);
+        };
+
+        overlay.addEventListener("click", (e) => {
+          if (e.target === overlay) close(null);
+          if (e.target.closest("[data-modal-close]")) close(null);
+          if (e.target.closest("[data-modal-cancel]")) close(null);
+          if (e.target.closest("[data-modal-ok]")) {
+            const v = safeTrim(input.value);
+            close(v || null);
+          }
+        });
+
+        overlay.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            const v = safeTrim(input.value);
+            close(v || null);
+          }
+          if (e.key === "Escape") close(null);
+        });
+      });
+    }
+
+    function showSheet({ title, items }) {
+      return new Promise(resolve => {
+        modalRoot.innerHTML = "";
+        const overlay = document.createElement("div");
+        overlay.className = "modalOverlay";
+        overlay.style.placeItems = "end center";
+        overlay.innerHTML = `
+          <div class="sheet" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
+            <div class="title">${escapeHtml(title)}</div>
+            <div class="items"></div>
+          </div>
+        `;
+        modalRoot.appendChild(overlay);
+        const itemsEl = overlay.querySelector(".items");
+        for (const it of items) {
+          const div = document.createElement("div");
+          div.className = "item" + (it.danger ? " danger" : "");
+          if (it.disabled) {
+            div.style.opacity = ".45";
+            div.style.pointerEvents = "none";
+          }
+          div.dataset.value = it.value;
+          div.innerHTML = `
+            <div>${escapeHtml(it.label)}</div>
+            <div style="color: var(--muted); font-weight:700; font-size:12px;">${it.hint ? escapeHtml(it.hint) : ""}</div>
+          `;
+          itemsEl.appendChild(div);
+        }
+
+        requestAnimationFrame(() => overlay.classList.add("open"));
+
+        const close = (val) => {
+          overlay.classList.remove("open");
+          setTimeout(() => {
+            modalRoot.innerHTML = "";
+            resolve(val);
+          }, 180);
+        };
+
+        overlay.addEventListener("click", (e) => {
+          if (e.target === overlay) return close(null);
+          const item = e.target.closest(".item");
+          if (item) return close(item.dataset.value || null);
+        });
+      });
+    }
+
+    function escapeHtml(s) {
+      return (s || "").toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+    function escapeAttr(s) {
+      return escapeHtml(s).split("\n").join(" ");
+    }
+
+/* ----------------------------
+       Rendu
+    ---------------------------- */
+
+    function render() {
+      if (ui.screen === "store") {
+        const store = getStore(ui.storeId);
+        if (!store) {
+          ui.screen = "home";
+          ui.storeId = null;
+          ui.searchOpen = false;
+          ui.searchQuery = "";
+          return render();
+        }
+        renderStore(store);
+        return;
+      }
+      renderHome();
+    }
+
+    function renderHome() {
+      ui.searchOpen = false;
+      ui.searchQuery = "";
+
+      const theme = appData.prefs.theme;
+      const themeLabel = theme === "dark" ? "Mode sombre" : "Mode clair";
+
+      const lastBackup = formatDateTime(appData.lastBackupISO);
+
+      const storesHtml = appData.stores.map(s => `
+        <div class="row store-row card" data-row-store="${s.id}">
+          <button class="btn icon flat handle" data-action="drag-store" data-id="${s.id}" aria-label="Déplacer">${icon("handle")}</button>
+
+          <button class="btn flat" data-action="open-store" data-id="${s.id}" style="justify-content:flex-start; padding: 10px 12px; border-radius: 16px; border: none; background: transparent;">
+            <div class="name">${escapeHtml(s.name)}</div>
+          </button>
+
+          <div class="right">
+            <button class="btn icon flat" data-action="store-gear" data-id="${s.id}" aria-label="Options magasin">${icon("gear")}</button>
+          </div>
+        </div>
+      `).join("");
+
+      appEl.innerHTML = `
+        <div class="topbar">
+          <div class="title">Magasins</div>
+          <div class="right">
+            <button class="btn icon" data-action="toggle-theme" aria-label="${escapeHtml(themeLabel)}">
+              ${theme === "dark" ? icon("moon") : icon("sun")}
+            </button>
+          </div>
+        </div>
+
+        <div class="list">
+          ${storesHtml || `<div class="empty">Aucun magasin. Ajoute-en un avec le +.</div>`}
+        </div>
+
+        <div class="footer">
+          <button class="btn primary" data-action="add-store">${icon("plus")} Ajouter un magasin</button>
+
+          <div class="card pad">
+            <div class="two">
+              <button class="btn" data-action="export">${icon("download")} Sauvegarder</button>
+              <button class="btn" data-action="import">${icon("upload")} Restaurer</button>
+            </div>
+            <div style="margin-top:10px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+              <div class="pill">Dernière sauvegarde : <strong>${escapeHtml(lastBackup)}</strong></div>
+              <div class="pill">Données : <strong>sur cet iPhone</strong></div>
+            </div>
+          </div>
+
+          <div class="hint">
+            Astuce : sur iPhone, ouvre dans Safari puis “Ajouter à l’écran d’accueil” pour l’avoir comme une vraie appli.
+          </div>
+        </div>
+
+        <input id="fileInput" type="file" accept="application/json" style="display:none" />
+      `;
+    }
+
+    function renderStore(store) {
+      const rest = store.items.filter(it => it.planned && !it.bought).length;
+
+      const filterOn = ui.filterOn;
+      const searchOpen = ui.searchOpen;
+      const q = normalizeKey(ui.searchQuery);
+
+      let items = store.items.slice();
+
+      if (filterOn) {
+        items = items.filter(it => it.planned && !it.bought);
+      }
+      if (q) {
+        items = items.filter(it => normalizeKey(it.name).includes(q));
+      }
+
+      const itemsHtml = items.map(it => {
+        const plannedClass = (it.planned && !it.bought) ? "planned" : "";
+        const boughtClass = it.bought ? "bought" : "";
+        return `
+          <div class="item-row card ${plannedClass} ${boughtClass}" data-item-row="${it.id}">
+            <button class="checkbox ${it.bought ? "checked" : ""}" data-action="toggle-bought" data-id="${it.id}" aria-label="Acheté">
+              <span class="mark">${icon("check")}</span>
+            </button>
+
+            <div class="stepper" aria-label="Quantité">
+              <button data-action="qty-dec" data-id="${it.id}" aria-label="Baisser la quantité" ${it.qty <= 1 ? "disabled" : ""}>-</button>
+              <div class="qty" aria-label="Quantité">${it.qty}</div>
+              <button data-action="qty-inc" data-id="${it.id}" aria-label="Augmenter la quantité">+</button>
+            </div>
+
+            <button class="btn flat" data-action="toggle-planned" data-id="${it.id}"
+              style="justify-content:flex-start; padding: 10px 12px; border-radius: 16px; border: none; background: transparent;">
+              <div class="item-name">${escapeHtml(it.name)}</div>
+            </button>
+
+            <button class="btn icon flat handle" data-action="drag-item" data-id="${it.id}" aria-label="Déplacer">${icon("handle")}</button>
+            <button class="btn icon flat" data-action="item-gear" data-id="${it.id}" aria-label="Options article">${icon("gear")}</button>
+          </div>
+        `;
+      }).join("");
+
+      appEl.innerHTML = `
+        <div class="store-header">
+          <button class="btn icon" data-action="back-home" aria-label="Retour">${icon("back")}</button>
+          <div class="store-title" title="${escapeAttr(store.name)}">${escapeHtml(store.name)}</div>
+          <button class="btn icon" data-action="toggle-search" aria-label="Rechercher">${icon("search")}</button>
+          <button class="btn icon" data-action="store-menu" aria-label="Menu">${icon("more")}</button>
+        </div>
+
+        <div class="meta-row">
+          <div class="pill">reste : <strong>${rest}</strong></div>
+          <div class="pill">filtre : <strong>${filterOn ? "ON" : "OFF"}</strong></div>
+        </div>
+
+        <div class="searchbar ${searchOpen ? "open" : ""}">
+          <div class="field card">
+            ${icon("search")}
+            <input id="searchInput" type="text" placeholder="Rechercher un article" value="${escapeAttr(ui.searchQuery)}" />
+            <button class="btn icon flat clear" data-action="clear-search" aria-label="Effacer">✕</button>
+          </div>
+        </div>
+
+        <div class="list">
+          ${itemsHtml || `<div class="empty">${filterOn || q ? "Rien ici (avec le filtre/recherche)." : "Aucun article. Ajoute-en un avec le +."}</div>`}
+        </div>
+
+        <div class="footer">
+          <button class="btn primary" data-action="add-item">${icon("plus")} Ajouter un article</button>
+        </div>
+      `;
+
+      if (ui.searchOpen) {
+        const input = $("#searchInput");
+        if (input) setTimeout(() => input.focus(), 40);
+      }
+    }
+
+    function getStore(storeId) {
+      return appData.stores.find(s => s.id === storeId) || null;
+    }
+    function getItem(store, itemId) {
+      return store.items.find(i => i.id === itemId) || null;
+    }
+
+    function openStore(storeId) {
+      ui.screen = "store";
+      ui.storeId = storeId;
+      ui.searchOpen = false;
+      ui.searchQuery = "";
       render();
-      itemInput.focus();
-    })();
+    }
+
+    /* ----------------------------
+       Actions (clics)
+    ---------------------------- */
+
+    document.addEventListener("click", async (e) => {
+      const el = e.target.closest("[data-action]");
+      if (!el) return;
+
+      const action = el.dataset.action;
+      const id = el.dataset.id;
+
+      if (action === "toggle-theme") {
+        pushUndo();
+        appData.prefs.theme = (appData.prefs.theme === "dark") ? "light" : "dark";
+        applyTheme(appData.prefs.theme);
+        saveAppData();
+        render();
+        toast(appData.prefs.theme === "dark" ? "Mode sombre" : "Mode clair");
+        return;
+      }
+
+      if (action === "open-store") {
+        openStore(id);
+        return;
+      }
+
+      if (action === "back-home") {
+        ui.screen = "home";
+        ui.storeId = null;
+        ui.searchOpen = false;
+        ui.searchQuery = "";
+        render();
+        return;
+      }
+
+      if (action === "add-store") {
+        const name = await showPrompt({
+          title: "Nouveau magasin",
+          label: "Nom du magasin",
+          placeholder: "Ex : Mon magasin",
+          okText: "Ajouter"
+        });
+        if (!name) return;
+
+        pushUndo();
+        appData.stores.push({
+          id: uid("s_"),
+          name,
+          template: null,
+          items: []
+        });
+        saveAppData();
+        render();
+        toast("Magasin ajouté");
+        return;
+      }
+
+      if (action === "store-gear") {
+        const store = getStore(id);
+        if (!store) return;
+
+        const choice = await showSheet({
+          title: store.name,
+          items: [
+            { label: "Renommer", value: "rename" },
+            { label: "Supprimer", value: "delete", danger: true },
+            { label: "Annuler", value: "cancel" }
+          ]
+        });
+        if (choice === "rename") {
+          const newName = await showPrompt({
+            title: "Renommer le magasin",
+            label: "Nouveau nom",
+            value: store.name,
+            okText: "Renommer"
+          });
+          if (!newName) return;
+          pushUndo();
+          store.name = newName;
+          saveAppData();
+          render();
+          toast("Magasin renommé");
+        }
+        if (choice === "delete") {
+          const ok = await showConfirm({
+            title: "Supprimer ce magasin ?",
+            message: "Il disparaîtra avec tous ses articles.",
+            okText: "Supprimer",
+            danger: true
+          });
+          if (!ok) return;
+          pushUndo();
+          appData.stores = appData.stores.filter(s => s.id !== store.id);
+          saveAppData();
+          if (ui.storeId === store.id) {
+            ui.screen = "home";
+            ui.storeId = null;
+          }
+          render();
+          toast("Magasin supprimé");
+        }
+        return;
+      }
+
+      if (action === "add-item") {
+        const store = getStore(ui.storeId);
+        if (!store) return;
+
+        const name = await showPrompt({
+          title: "Nouvel article",
+          label: "Nom de l'article",
+          placeholder: "Ex : Lait",
+          okText: "Ajouter"
+        });
+        if (!name) return;
+
+        pushUndo();
+        store.items.push({
+          id: uid("i_"),
+          name,
+          qty: 1,
+          planned: true,
+          bought: false
+        });
+        saveAppData();
+        render();
+        toast("Article ajouté");
+        return;
+      }
+
+      if (action === "toggle-planned") {
+        const store = getStore(ui.storeId);
+        if (!store) return;
+        const it = getItem(store, id);
+        if (!it) return;
+
+        pushUndo();
+        it.planned = !it.planned;
+        saveAppData();
+
+        if (ui.filterOn && (!it.planned || it.bought)) {
+          animateRemoval(id);
+        } else {
+          render();
+        }
+        return;
+      }
+
+      if (action === "toggle-bought") {
+        const store = getStore(ui.storeId);
+        if (!store) return;
+        const it = getItem(store, id);
+        if (!it) return;
+
+        pushUndo();
+        it.bought = !it.bought;
+        saveAppData();
+
+        const box = e.target.closest(".checkbox");
+        if (box) {
+          box.classList.add("flip");
+          setTimeout(() => box.classList.remove("flip"), 280);
+        }
+
+        if (ui.filterOn && (!it.planned || it.bought)) {
+          animateRemoval(id);
+        } else {
+          render();
+        }
+        return;
+      }
+
+      if (action === "qty-inc" || action === "qty-dec") {
+        const store = getStore(ui.storeId);
+        if (!store) return;
+        const it = getItem(store, id);
+        if (!it) return;
+
+        pushUndo();
+        if (action === "qty-inc") it.qty = Math.min(99, (it.qty || 1) + 1);
+        if (action === "qty-dec") it.qty = Math.max(1, (it.qty || 1) - 1);
+        saveAppData();
+        render();
+        return;
+      }
+
+      if (action === "item-gear") {
+        const store = getStore(ui.storeId);
+        if (!store) return;
+        const it = getItem(store, id);
+        if (!it) return;
+
+        const choice = await showSheet({
+          title: it.name,
+          items: [
+            { label: "Renommer", value: "rename" },
+            { label: "Supprimer", value: "delete", danger: true },
+            { label: "Annuler", value: "cancel" }
+          ]
+        });
+
+        if (choice === "rename") {
+          const newName = await showPrompt({
+            title: "Renommer l'article",
+            label: "Nouveau nom",
+            value: it.name,
+            okText: "Renommer"
+          });
+          if (!newName) return;
+          pushUndo();
+          it.name = newName;
+          saveAppData();
+          render();
+          toast("Article renommé");
+        }
+
+        if (choice === "delete") {
+          const ok = await showConfirm({
+            title: "Supprimer cet article ?",
+            message: "Il disparaîtra de la liste.",
+            okText: "Supprimer",
+            danger: true
+          });
+          if (!ok) return;
+          pushUndo();
+          store.items = store.items.filter(x => x.id !== it.id);
+          saveAppData();
+          render();
+          toast("Article supprimé");
+        }
+        return;
+      }
+
+      if (action === "toggle-search") {
+        ui.searchOpen = !ui.searchOpen;
+        if (!ui.searchOpen) ui.searchQuery = "";
+        render();
+        return;
+      }
+
+      if (action === "clear-search") {
+        ui.searchQuery = "";
+        render();
+        return;
+      }
+
+      if (action === "store-menu") {
+        const store = getStore(ui.storeId);
+        if (!store) return;
+
+        const canRestore = !!store.template && !!ORIGINAL_TEMPLATES[store.template];
+
+        const choice = await showSheet({
+          title: "Actions",
+          items: [
+            { label: "Undo", value: "undo", disabled: !undoStack.length, hint: undoStack.length ? `${undoStack.length}` : "—" },
+            { label: ui.filterOn ? "Filtre : ON (désactiver)" : "Filtre : OFF (activer)", value: "filter" },
+            { label: "Nouvelle course", value: "new" },
+            { label: "Restaurer la liste d’origine", value: "restore", disabled: !canRestore },
+            { label: "Annuler", value: "cancel" }
+          ]
+        });
+
+        if (choice === "undo") {
+          doUndo();
+        }
+        if (choice === "filter") {
+          ui.filterOn = !ui.filterOn;
+          render();
+          toast(ui.filterOn ? "Filtre ON" : "Filtre OFF");
+        }
+        if (choice === "new") {
+          const ok = await showConfirm({
+            title: "Nouvelle course",
+            message: "Décocher les achetés et remettre tous les articles en “pas prévu”. Les quantités restent.",
+            okText: "OK"
+          });
+          if (!ok) return;
+          pushUndo();
+          for (const it of store.items) {
+            it.bought = false;
+            it.planned = false;
+          }
+          saveAppData();
+          render();
+          toast("Nouvelle course");
+        }
+        if (choice === "restore") {
+          const ok = await showConfirm({
+            title: "Restaurer la liste d’origine ?",
+            message: "Ça remplace toute la liste de ce magasin (articles + ordre).",
+            okText: "Restaurer"
+          });
+          if (!ok) return;
+          pushUndo();
+          const names = ORIGINAL_TEMPLATES[store.template] || [];
+          store.items = names.map(n => ({
+            id: uid("i_"),
+            name: n,
+            qty: 1,
+            planned: false,
+            bought: false
+          }));
+          saveAppData();
+          render();
+          toast("Liste restaurée");
+        }
+        return;
+      }
+
+      if (action === "export") {
+        exportToFile();
+        return;
+      }
+      if (action === "import") {
+        importFromFile();
+        return;
+      }
+    });
+
+    // recherche input
+    document.addEventListener("input", (e) => {
+      if (e.target && e.target.id === "searchInput") {
+        ui.searchQuery = e.target.value || "";
+        render();
+      }
+    });
+
+    /* ----------------------------
+       Export / Import
+    ---------------------------- */
+    function exportToFile() {
+      try {
+        const exportedAt = nowISO();
+        const blob = new Blob([JSON.stringify({ exportedAt, appData }, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+
+        const d = new Date();
+        const stamp = d.toISOString().slice(0,10);
+        const filename = `Courses-${stamp}.json`;
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 800);
+
+        appData.lastBackupISO = exportedAt;
+        saveAppData();
+        render();
+        toast("Sauvegarde créée");
+      } catch {
+        toast("Sauvegarde impossible");
+      }
+    }
+
+    function importFromFile() {
+      const input = $("#fileInput");
+      if (!input) return;
+      input.value = "";
+      input.onchange = async () => {
+        if (!input.files || !input.files.length) return;
+        const file = input.files[0];
+
+        const ok = await showConfirm({
+          title: "Restaurer ?",
+          message: "Ça remplace tes données actuelles.",
+          okText: "Restaurer"
+        });
+        if (!ok) return;
+
+        try {
+          const text = await file.text();
+          const obj = JSON.parse(text);
+
+          const incoming = obj && obj.appData;
+          if (!incoming || incoming.schemaVersion !== SCHEMA_VERSION || !Array.isArray(incoming.stores)) {
+            toast("Fichier invalide");
+            return;
+          }
+
+          pushUndo();
+          appData = incoming;
+          appData.prefs = appData.prefs || {};
+          appData.prefs.theme = appData.prefs.theme || pickInitialTheme();
+          applyTheme(appData.prefs.theme);
+          saveAppData();
+
+          ui.screen = "home";
+          ui.storeId = null;
+          ui.searchOpen = false;
+          ui.searchQuery = "";
+          render();
+          toast("Restauration OK");
+        } catch {
+          toast("Restauration impossible");
+        }
+      };
+      input.click();
+    }
+
+    /* ----------------------------
+       Animation disparition (filtre actif)
+    ---------------------------- */
+    function animateRemoval(itemId) {
+      const row = document.querySelector(`[data-item-row="${cssEscape(itemId)}"]`);
+      if (!row) {
+        render();
+        return;
+      }
+      row.classList.add("removing");
+      setTimeout(() => {
+        render();
+      }, 220);
+    }
+
+    function cssEscape(s) {
+      // Nos IDs sont "safe" (lettres/chiffres/_/-). Pas besoin de gymnastique.
+      return (s || "").toString();
+    }
+
+/* ----------------------------
+       Swipe gauche/droite entre magasins
+    ---------------------------- */
+    let swipe = null;
+
+    document.addEventListener("touchstart", (e) => {
+      if (ui.screen !== "store") return;
+      if (e.target.closest(".checkbox, .stepper, .btn, .handle, .searchbar, .modalOverlay")) return;
+      const t = e.touches && e.touches[0];
+      if (!t) return;
+      swipe = { x: t.clientX, y: t.clientY, time: Date.now() };
+    }, { passive: true });
+
+    document.addEventListener("touchmove", (e) => {
+      if (!swipe || ui.screen !== "store") return;
+      const t = e.touches && e.touches[0];
+      if (!t) return;
+      const dx = t.clientX - swipe.x;
+      const dy = t.clientY - swipe.y;
+      if (Math.abs(dx) > 22 && Math.abs(dx) > Math.abs(dy) + 6) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    document.addEventListener("touchend", (e) => {
+      if (!swipe || ui.screen !== "store") return;
+      const t = e.changedTouches && e.changedTouches[0];
+      if (!t) return;
+      const dx = t.clientX - swipe.x;
+      const dy = t.clientY - swipe.y;
+      const dt = Date.now() - swipe.time;
+      swipe = null;
+
+      if (Math.abs(dy) > 80) return;
+      if (dt > 450) return;
+
+      if (dx > 60) {
+        moveToAdjacentStore(-1);
+      } else if (dx < -60) {
+        moveToAdjacentStore(1);
+      }
+    }, { passive: true });
+
+    function moveToAdjacentStore(delta) {
+      const idx = appData.stores.findIndex(s => s.id === ui.storeId);
+      if (idx < 0) return;
+      const next = appData.stores[idx + delta];
+      if (!next) return;
+      ui.storeId = next.id;
+      ui.searchOpen = false;
+      ui.searchQuery = "";
+      render();
+    }
+
+    /* ----------------------------
+       Drag & drop (magasins + articles)
+    ---------------------------- */
+    let dragCtx = null;
+
+    function startDrag({ type, id, pointerId, startX, startY, rowEl, containerEl }) {
+      const rect = rowEl.getBoundingClientRect();
+
+      const placeholder = rowEl.cloneNode(true);
+      placeholder.classList.add("placeholder");
+      placeholder.style.visibility = "visible";
+
+      const ghost = document.createElement("div");
+      ghost.className = "ghost";
+      ghost.style.width = rect.width + "px";
+      ghost.style.height = rect.height + "px";
+      ghost.innerHTML = `<div class="ghostInner">${rowEl.innerHTML}</div>`;
+      document.body.appendChild(ghost);
+
+      containerEl.insertBefore(placeholder, rowEl);
+      rowEl.remove();
+
+      dragCtx = {
+        type,
+        id,
+        pointerId,
+        startX,
+        startY,
+        offsetX: startX - rect.left,
+        offsetY: startY - rect.top,
+        rowEl,
+        placeholder,
+        ghost,
+        containerEl,
+        active: true
+      };
+
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = "grabbing";
+      moveGhost(startX, startY);
+    }
+
+    function moveGhost(x, y) {
+      if (!dragCtx) return;
+      const left = x - dragCtx.offsetX;
+      const top  = y - dragCtx.offsetY;
+      dragCtx.ghost.style.transform = `translate(${left}px, ${top}px)`;
+    }
+
+    function finishDrag(cancel=false) {
+      if (!dragCtx) return;
+
+      const { rowEl, placeholder, containerEl, ghost, type } = dragCtx;
+
+      containerEl.insertBefore(rowEl, placeholder);
+      placeholder.remove();
+      ghost.remove();
+
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+      dragCtx.active = false;
+
+      if (!cancel) {
+        pushUndo();
+        if (type === "store") {
+          const ids = $$(".store-row", containerEl).map(el => el.dataset.rowStore).filter(Boolean);
+          appData.stores = ids.map(id => appData.stores.find(s => s.id === id)).filter(Boolean);
+        } else if (type === "item") {
+          const store = getStore(ui.storeId);
+          if (store) {
+            const ids = $$(".item-row", containerEl).map(el => el.dataset.itemRow).filter(Boolean);
+            store.items = ids.map(id => store.items.find(it => it.id === id)).filter(Boolean);
+          }
+        }
+        saveAppData();
+        render();
+        toast("Ordre mis à jour");
+      } else {
+        render();
+      }
+
+      dragCtx = null;
+    }
+
+    function handlePointerMove(e) {
+      if (!dragCtx || !dragCtx.active) return;
+      if (e.pointerId !== dragCtx.pointerId) return;
+
+      const x = e.clientX;
+      const y = e.clientY;
+      moveGhost(x, y);
+
+      const elUnder = document.elementFromPoint(x, y);
+      if (!elUnder) return;
+
+      const rowSelector = dragCtx.type === "store" ? ".store-row" : ".item-row";
+      const overRow = elUnder.closest(rowSelector);
+      if (!overRow || overRow === dragCtx.placeholder) return;
+
+      const overRect = overRow.getBoundingClientRect();
+      const before = y < (overRect.top + overRect.height / 2);
+
+      if (before) {
+        dragCtx.containerEl.insertBefore(dragCtx.placeholder, overRow);
+      } else {
+        dragCtx.containerEl.insertBefore(dragCtx.placeholder, overRow.nextSibling);
+      }
+    }
+
+    function handlePointerUp(e) {
+      if (!dragCtx) return;
+      if (e.pointerId !== dragCtx.pointerId) return;
+      finishDrag(false);
+    }
+
+    document.addEventListener("pointermove", (e) => handlePointerMove(e), { passive: true });
+    document.addEventListener("pointerup", (e) => handlePointerUp(e), { passive: true });
+    document.addEventListener("pointercancel", () => finishDrag(true), { passive: true });
+
+    document.addEventListener("pointerdown", (e) => {
+      const h = e.target.closest('[data-action="drag-store"], [data-action="drag-item"]');
+      if (!h) return;
+
+      e.preventDefault();
+      const action = h.dataset.action;
+      const id = h.dataset.id;
+      const pointerId = e.pointerId;
+
+      const rowSelector = action === "drag-store" ? ".store-row" : ".item-row";
+      const rowEl = h.closest(rowSelector);
+      if (!rowEl) return;
+
+      const containerEl = rowEl.parentElement;
+      if (!containerEl) return;
+
+      const startX = e.clientX;
+      const startY = e.clientY;
+
+      let moved = false;
+      let timer = null;
+
+      const onMove = (ev) => {
+        if (ev.pointerId !== pointerId) return;
+        const dx = Math.abs(ev.clientX - startX);
+        const dy = Math.abs(ev.clientY - startY);
+        if (dx + dy > 8) moved = true;
+      };
+
+      const cleanup = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onCancel);
+        if (timer) clearTimeout(timer);
+      };
+
+      const onUp = (ev) => {
+        if (ev.pointerId !== pointerId) return;
+        cleanup();
+      };
+      const onCancel = () => {
+        cleanup();
+      };
+
+      window.addEventListener("pointermove", onMove, { passive: true });
+      window.addEventListener("pointerup", onUp, { passive: true });
+      window.addEventListener("pointercancel", onCancel, { passive: true });
+
+      timer = setTimeout(() => {
+        cleanup();
+        if (moved) return;
+        startDrag({
+          type: action === "drag-store" ? "store" : "item",
+          id,
+          pointerId,
+          startX,
+          startY,
+          rowEl,
+          containerEl
+        });
+      }, 220);
+    });
+
+    /* ----------------------------
+       Boot
+    ---------------------------- */
+    render();
+    window.addEventListener("load", () => {
+      setTimeout(() => {
+        document.body.classList.remove("loading");
+        document.body.classList.add("ready");
+      }, 320);
+    });
+
+  })();
   </script>
 </body>
 </html>
-
