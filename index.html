@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Liste de courses</title>
+  <style>
+    :root{
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #14161a;
+      --muted: #6b7280;
+      --line: rgba(20,22,26,.10);
+      --shadow: 0 16px 40px rgba(16,24,40,.10);
+      --radius: 18px;
+      --btn: #111827;
+      --btnText: #ffffff;
+      --danger: #ef4444;
+      --focus: rgba(59,130,246,.25);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root{
+        --bg:#0b0f17;
+        --card:#0f1623;
+        --text:#eef2ff;
+        --muted:#a5b4fc;
+        --line: rgba(238,242,255,.10);
+        --shadow: 0 18px 50px rgba(0,0,0,.55);
+        --btn:#eef2ff;
+        --btnText:#0b0f17;
+        --danger:#fb7185;
+        --focus: rgba(167,139,250,.25);
+      }
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 20% 10%, rgba(99,102,241,.18), transparent 60%),
+                  radial-gradient(900px 700px at 80% 0%, rgba(236,72,153,.14), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      display:flex;
+      justify-content:center;
+      padding:20px 14px 28px;
+    }
+    .app{
+      width:min(820px, 100%);
+      background:var(--card);
+      border:1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      overflow:hidden;
+    }
+    header{
+      padding:18px 18px 12px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      min-width: 220px;
+    }
+    h1{
+      font-size:18px;
+      margin:0;
+      letter-spacing:.2px;
+    }
+    .sub{
+      margin:0;
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+    main{padding:16px 18px 18px}
+    form{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      margin-bottom:12px;
+    }
+    .inputWrap{
+      flex:1;
+      position:relative;
+    }
+    input[type="text"]{
+      width:100%;
+      padding:12px 12px 12px 40px;
+      border-radius: 14px;
+      border:1px solid var(--line);
+      background:transparent;
+      color:var(--text);
+      outline:none;
+      font-size:15px;
+      transition: box-shadow .15s ease, border-color .15s ease;
+    }
+    input[type="text"]:focus{
+      box-shadow: 0 0 0 4px var(--focus);
+      border-color: rgba(59,130,246,.55);
+    }
+    .spark{
+      position:absolute;
+      left:12px; top:50%;
+      transform:translateY(-50%);
+      opacity:.85;
+      font-size:16px;
+      user-select:none;
+    }
+    button{
+      border:0;
+      border-radius: 14px;
+      padding:12px 14px;
+      font-size:14px;
+      font-weight:650;
+      cursor:pointer;
+      background: var(--btn);
+      color: var(--btnText);
+      transition: transform .06s ease, opacity .15s ease, filter .15s ease;
+      white-space:nowrap;
+    }
+    button:active{transform: translateY(1px)}
+    button.secondary{
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+    button.danger{
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid rgba(239,68,68,.35);
+    }
+    button:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+    .bar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin: 10px 0 12px;
+      flex-wrap:wrap;
+    }
+    .count{
+      font-size:13px;
+      color:var(--muted);
+    }
+    .barActions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    ul.list{
+      list-style:none;
+      padding:0;
+      margin:0;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .row{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:12px 12px;
+      border:1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.02));
+    }
+    .check{
+      width:22px; height:22px;
+      accent-color: #22c55e;
+      cursor:pointer;
+    }
+    .text{
+      flex:1;
+      font-size:15px;
+      line-height:1.2;
+      word-break:break-word;
+      cursor:pointer;
+    }
+    .hint{
+      font-size:12px;
+      color:var(--muted);
+      margin-top:2px;
+      user-select:none;
+    }
+    .miniBtns{
+      display:flex;
+      gap:6px;
+      align-items:center;
+    }
+    .iconBtn{
+      width:38px;
+      height:38px;
+      padding:0;
+      display:grid;
+      place-items:center;
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      font-size:16px;
+    }
+    .iconBtn:hover{filter: brightness(1.02)}
+    .empty{
+      margin:14px 2px 0;
+      padding:14px 12px;
+      border:1px dashed var(--line);
+      border-radius: 16px;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    /* Toast (Annuler) */
+    .toast{
+      position: fixed;
+      left: 50%;
+      bottom: 16px;
+      transform: translateX(-50%);
+      background: rgba(17,24,39,.92);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 16px;
+      padding: 12px 12px;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      box-shadow: 0 18px 60px rgba(0,0,0,.35);
+      max-width: min(780px, calc(100% - 20px));
+      width: fit-content;
+      opacity: 0;
+      pointer-events:none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .toast.show{
+      opacity: 1;
+      pointer-events:auto;
+      transform: translateX(-50%) translateY(-2px);
+    }
+    .toast span{
+      font-size:13px;
+      opacity:.95;
+    }
+    .toast button{
+      padding:10px 12px;
+      border-radius: 14px;
+      background: #fff;
+      color: #111827;
+      font-weight:750;
+    }
+
+    @media (max-width: 520px){
+      main{padding:14px 12px 16px}
+      header{padding:16px 12px 10px}
+      form{gap:8px}
+      button{padding:12px 12px}
+      .iconBtn{width:40px;height:40px}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app" role="application" aria-label="Liste de courses">
+    <header>
+      <div class="title">
+        <h1>Liste de courses</h1>
+        <p class="sub">Ajoute, coche pour supprimer, et c’est sauvegardé ici sur l’appareil.</p>
+      </div>
+    </header>
+
+    <main>
+      <form id="addForm" autocomplete="off">
+        <div class="inputWrap">
+          <div class="spark" aria-hidden="true">🛒</div>
+          <input id="itemInput" type="text" placeholder="Ajouter un produit (ex : Lait)" inputmode="text" />
+        </div>
+        <button id="addBtn" type="submit">Ajouter</button>
+      </form>
+
+      <div class="bar">
+        <div class="count" id="count">0 article</div>
+        <div class="barActions">
+          <button id="copyBtn" type="button" class="secondary">Copier la liste</button>
+          <button id="clearBtn" type="button" class="danger">Tout effacer</button>
+        </div>
+      </div>
+
+      <ul id="list" class="list" aria-label="Articles"></ul>
+      <div id="empty" class="empty" hidden>Rien dans la liste. Ajoute ton premier article.</div>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" aria-live="polite" aria-atomic="true">
+    <span id="toastMsg">Supprimé.</span>
+    <button id="undoBtn" type="button">Annuler</button>
+  </div>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = "liste_courses_v1_items";
+
+      const $ = (id) => document.getElementById(id);
+
+      const addForm = $("addForm");
+      const itemInput = $("itemInput");
+      const listEl = $("list");
+      const emptyEl = $("empty");
+      const countEl = $("count");
+      const copyBtn = $("copyBtn");
+      const clearBtn = $("clearBtn");
+
+      const toast = $("toast");
+      const toastMsg = $("toastMsg");
+      const undoBtn = $("undoBtn");
+
+      let items = [];
+      let lastDeleted = null; // { item, index, timeoutId }
+
+      const uid = () => {
+        try {
+          return crypto.randomUUID();
+        } catch (_) {
+          return "id_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+        }
+      };
+
+      const save = () => {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        } catch (_) {
+          // si localStorage indisponible, on continue en mémoire
+        }
+      };
+
+      const load = () => {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return [];
+          const parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (_) {
+          return [];
+        }
+      };
+
+      const setCount = () => {
+        const n = items.length;
+        countEl.textContent = n + " " + (n <= 1 ? "article" : "articles");
+        copyBtn.disabled = n === 0;
+        clearBtn.disabled = n === 0;
+      };
+
+      const showEmpty = () => {
+        emptyEl.hidden = items.length !== 0;
+      };
+
+      const hideToast = () => {
+        toast.classList.remove("show");
+        if (lastDeleted && lastDeleted.timeoutId) {
+          clearTimeout(lastDeleted.timeoutId);
+          lastDeleted.timeoutId = null;
+        }
+      };
+
+      const showToast = (message) => {
+        toastMsg.textContent = message;
+        toast.classList.add("show");
+
+        // auto-hide (laisse une chance d'annuler)
+        if (lastDeleted) {
+          if (lastDeleted.timeoutId) clearTimeout(lastDeleted.timeoutId);
+          lastDeleted.timeoutId = setTimeout(() => {
+            lastDeleted = null;
+            hideToast();
+          }, 5000);
+        }
+      };
+
+      const render = () => {
+        listEl.innerHTML = "";
+
+        items.forEach((it) => {
+          const li = document.createElement("li");
+          li.className = "row";
+          li.dataset.id = it.id;
+
+          const chk = document.createElement("input");
+          chk.type = "checkbox";
+          chk.className = "check";
+          chk.setAttribute("aria-label", "Coche pour supprimer " + it.text);
+          chk.addEventListener("change", () => {
+            if (chk.checked) removeItem(it.id, true);
+          });
+
+          const textWrap = document.createElement("div");
+          textWrap.style.flex = "1";
+
+          const text = document.createElement("div");
+          text.className = "text";
+          text.textContent = it.text;
+          text.title = "Cliquer pour modifier";
+          text.addEventListener("click", () => {
+            const next = prompt("Modifier l’article :", it.text);
+            if (next === null) return;
+            const trimmed = next.trim();
+            if (!trimmed) return;
+            it.text = trimmed;
+            save();
+            render();
+          });
+
+          const hint = document.createElement("div");
+          hint.className = "hint";
+          hint.textContent = "Coche = supprimer";
+
+          textWrap.appendChild(text);
+          textWrap.appendChild(hint);
+
+          const mini = document.createElement("div");
+          mini.className = "miniBtns";
+
+          const delBtn = document.createElement("button");
+          delBtn.type = "button";
+          delBtn.className = "iconBtn";
+          delBtn.textContent = "🗑️";
+          delBtn.setAttribute("aria-label", "Supprimer " + it.text);
+          delBtn.addEventListener("click", () => removeItem(it.id, false));
+
+          mini.appendChild(delBtn);
+
+          li.appendChild(chk);
+          li.appendChild(textWrap);
+          li.appendChild(mini);
+
+          listEl.appendChild(li);
+        });
+
+        setCount();
+        showEmpty();
+      };
+
+      const addItem = (text) => {
+        const cleaned = text.trim();
+        if (!cleaned) return;
+
+        items.unshift({
+          id: uid(),
+          text: cleaned,
+          createdAt: Date.now()
+        });
+
+        save();
+        render();
+      };
+
+      const removeItem = (id, viaCheck) => {
+        const index = items.findIndex(x => x.id === id);
+        if (index === -1) return;
+
+        // si un undo était en attente, on le “fige” (on n'empile pas 10 annulations)
+        lastDeleted = null;
+        hideToast();
+
+        const [removed] = items.splice(index, 1);
+        save();
+        render();
+
+        lastDeleted = { item: removed, index, timeoutId: null };
+
+        const msg = (viaCheck ? "Coché → supprimé : " : "Supprimé : ") + removed.text;
+        showToast(msg);
+      };
+
+      const undo = () => {
+        if (!lastDeleted) return;
+
+        const { item, index } = lastDeleted;
+        const safeIndex = Math.min(Math.max(index, 0), items.length);
+
+        items.splice(safeIndex, 0, item);
+        save();
+        render();
+
+        lastDeleted = null;
+        hideToast();
+      };
+
+      const copyList = async () => {
+        const txt = items.map(x => x.text).join("\n");
+        if (!txt) return;
+
+        try {
+          await navigator.clipboard.writeText(txt);
+          lastDeleted = null;
+          hideToast();
+          showToast("Liste copiée dans le presse-papiers.");
+          // pas d'undo ici
+          setTimeout(hideToast, 1400);
+        } catch (_) {
+          // fallback
+          const ta = document.createElement("textarea");
+          ta.value = txt;
+          ta.style.position = "fixed";
+          ta.style.left = "-9999px";
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand("copy"); } catch(e) {}
+          document.body.removeChild(ta);
+          lastDeleted = null;
+          hideToast();
+          showToast("Liste copiée (mode compatibilité).");
+          setTimeout(hideToast, 1400);
+        }
+      };
+
+      const clearAll = () => {
+        if (items.length === 0) return;
+        const ok = confirm("Tout effacer ? (impossible d’annuler)");
+        if (!ok) return;
+
+        lastDeleted = null;
+        hideToast();
+
+        items = [];
+        save();
+        render();
+      };
+
+      // Events
+      addForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        addItem(itemInput.value);
+        itemInput.value = "";
+        itemInput.focus();
+      });
+
+      copyBtn.addEventListener("click", copyList);
+      clearBtn.addEventListener("click", clearAll);
+      undoBtn.addEventListener("click", undo);
+
+      // Init
+      items = load();
+      render();
+      itemInput.focus();
+    })();
+  </script>
+</body>
+</html>
