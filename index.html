@@ -100,12 +100,12 @@
       -webkit-user-select: none;
       user-select: none;
     }
-    input, textarea {
-      -webkit-user-select: text;
-      user-select: text;
-      -webkit-touch-callout: default;
-    }
-
+	
+	input, textarea {
+		  -webkit-user-select: text;
+		  user-select: text;
+		  -webkit-touch-callout: initial;
+		}
 
     /* grain */
     body::before {
@@ -181,15 +181,74 @@
       to { transform: translateY(0) scale(1); opacity: 1; }
     }
 
-    .splash-logo {
-      width: 84px; height: 84px;
-      border-radius: 22px;
-      box-shadow: var(--shadow-soft);
-      background: rgba(255,255,255,.6);
-      border: 1px solid var(--border);
-      object-fit: cover;
-      transform: translateZ(0);
-    }
+	.splash-logo-wrap {
+	  width: 84px;
+	  height: 84px;
+	  border-radius: 22px;
+	  display: grid;
+	  place-items: center;
+	  perspective: 900px;
+	  -webkit-perspective: 900px;
+	  will-change: transform, filter;
+	  animation: logoBreath 3200ms ease-in-out infinite;
+	}
+
+	.splash-logo3d {
+	  width: 84px;
+	  height: 84px;
+	  position: relative;
+	  transform-style: preserve-3d;
+	  -webkit-transform-style: preserve-3d;
+	  will-change: transform;
+	  animation: logoSpinY 8000ms linear infinite;
+	}
+
+	.splash-logo-face {
+	  position: absolute;
+	  inset: 0;
+	  width: 84px;
+	  height: 84px;
+	  border-radius: 22px;
+	  box-shadow: var(--shadow-soft);
+	  background: rgba(255,255,255,.6);
+	  border: 1px solid var(--border);
+	  object-fit: cover;
+	  -webkit-backface-visibility: hidden;
+	  backface-visibility: hidden;
+	}
+
+	.splash-logo-face.back {
+	  transform: rotateY(180deg);
+	}
+
+	@keyframes logoSpinY {
+	  from { transform: rotateY(0deg); }
+	  to   { transform: rotateY(360deg); }
+	}
+
+	/* micro respiration + légère variation d’ombre/lumière */
+	@keyframes logoBreath {
+	  0%, 100% {
+		transform: translateY(0) scale(1);
+		filter:
+		  drop-shadow(0 10px 16px rgba(0,0,0,.18))
+		  drop-shadow(0 0 0 rgba(34,197,94,0));
+	  }
+	  50% {
+		transform: translateY(-1px) scale(1.02);
+		filter:
+		  drop-shadow(0 14px 20px rgba(0,0,0,.22))
+		  drop-shadow(0 0 8px rgba(34,197,94,.16));
+	  }
+	}
+
+	/* on coupe l’anim une fois la splash quittée */
+	body.entered .splash-logo-wrap,
+	body.entered .splash-logo3d {
+	  animation: none;
+	  filter: none;
+	}
+	
     .splash-title {
       font-weight: 700;
       letter-spacing: .2px;
@@ -228,12 +287,12 @@
 	  pointer-events: none; /* évite de bloquer le clic sur l’icône */
 	}
 	
-    .topbar .right {
-      display: flex;
-      gap: 10px;
-	  .topbar .right { margin-left: auto; }
-      align-items: center;
-    }
+	.topbar .right {
+		  display: flex;
+		  gap: 10px;
+		  margin-left: auto;
+		  align-items: center;
+		}
 
     /* buttons */
     .btn {
@@ -824,9 +883,11 @@
       body.ready #app { transition: none; }
       .checkbox.flip { animation: none; }
       #splash, .splash-inner { animation: none; }
+		  .splash-inner { opacity: 1 !important; transform: none !important; }
       body.entered #splash { transition: none; }
       .item-row { transition: none; }
       .modalOverlay, .modal, .sheet, .toast { transition: none; }
+	  .splash-logo-wrap, .splash-logo3d { animation: none !important; }
     }
   </style>
 </head>
@@ -834,7 +895,16 @@
 <body class="loading" data-theme="dark">
   <div id="splash" aria-hidden="true">
     <div class="splash-inner">
-      <img class="splash-logo" src="IconCourses.png" alt="Logo" onerror="this.style.display='none'" />
+	
+		<div class="splash-logo-wrap" aria-hidden="true">
+		  <div class="splash-logo3d">
+			<img class="splash-logo-face front" src="IconCourses.png" alt="Logo"
+				 onerror="this.closest('.splash-logo-wrap').style.display='none'" />
+			<img class="splash-logo-face back" src="IconCourses.png" alt="" aria-hidden="true"
+				 onerror="this.closest('.splash-logo-wrap').style.display='none'" />
+		  </div>
+		</div>
+	  
       <div class="splash-title">Liste de courses</div>
       <div class="splash-sub">Simple, rapide, et propre — comme on aime.</div>
     </div>
