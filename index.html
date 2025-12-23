@@ -919,6 +919,13 @@
     .placeholder {
       opacity: .35;
     }
+	
+    html.drag-lock, body.drag-lock {
+      overscroll-behavior: none;
+    }
+    body.drag-lock {
+      touch-action: none;
+    }
 
     @media (prefers-reduced-motion: reduce) {
       body.loading #app { transform: none; opacity: 1; filter: none; }
@@ -1992,7 +1999,7 @@
 
     document.addEventListener("touchstart", (e) => {
       if (ui.screen !== "store") return;
-      if (e.target.closest(".checkbox, .stepper, .btn, .handle, .searchbar, .modalOverlay")) return;
+	  if (e.target.closest(".checkbox, .stepper, .btn, .handle, .searchbar, .modalOverlay, .item-row, .store-row")) return;
       const t = e.touches && e.touches[0];
       if (!t) return;
       swipe = { x: t.clientX, y: t.clientY, time: Date.now() };
@@ -2043,9 +2050,79 @@
        Drag & drop (magasins + articles)
     ---------------------------- */
     let dragCtx = null;
+
+    // Réglages (validés)
+    const LONG_PRESS_MS = 360;          // appui long (Option B)
+    const AUTO_EDGE_RATIO = 0.15;       // zone haut/bas (proportionnel)
+    const AUTO_MAX_PX_FRAME = 18;       // vitesse max d'auto-scroll (doux)
+
+    // iPhone : empêcher le scroll tactile pendant un drag (le listener doit exister dès le départ)
     const preventScrollWhileDragging = (ev) => {
-      if (dragCtx && dragCtx.active) ev.preventDefault();
+      if (dragCtx && dragCtx.active && ev.cancelable) ev.preventDefault();
     };
+    document.addEventListener("touchmove", preventScrollWhileDragging, { passive: false, capture: true });
+
+    function updateDragAt(x, y) {
+      if (!dragCtx || !dragCtx.active) return;
+
+      dragCtx.lastX = x;
+      dragCtx.lastY = y;
+
+      moveGhost(x, y);
+
+      const elUnder = document.elementFromPoint(x, y);
+      if (!elUnder) return;
+
+      const rowSelector = dragCtx.type === "store" ? ".store-row" : ".item-row";
+      const overRow = elUnder.closest(rowSelector);
+      if (!overRow || overRow === dragCtx.placeholder) return;
+
+      const overRect = overRow.getBoundingClientRect();
+      const before = y < (overRect.top + overRect.height / 2);
+
+      if (before) {
+        dragCtx.containerEl.insertBefore(dragCtx.placeholder, overRow);
+      } else {
+        dragCtx.containerEl.insertBefore(dragCtx.placeholder, overRow.nextSibling);
+      }
+    }
+
+    function startAutoScroll() {
+      if (!dragCtx) return;
+      if (dragCtx.autoRaf) cancelAnimationFrame(dragCtx.autoRaf);
+
+      dragCtx.lastFrame = performance.now();
+
+      const tick = (now) => {
+        if (!dragCtx || !dragCtx.active) return;
+
+        const dt = Math.min(40, Math.max(10, now - (dragCtx.lastFrame || now)));
+        dragCtx.lastFrame = now;
+
+        const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+        const edge = Math.max(60, Math.round(vh * AUTO_EDGE_RATIO));
+
+        const y = dragCtx.lastY ?? 0;
+        let dy = 0;
+
+        if (y < edge) {
+          const t = (edge - y) / edge; // 0..1
+          dy = -Math.round(AUTO_MAX_PX_FRAME * t * (dt / 16.7));
+        } else if (y > vh - edge) {
+          const t = (y - (vh - edge)) / edge; // 0..1
+          dy = Math.round(AUTO_MAX_PX_FRAME * t * (dt / 16.7));
+        }
+
+        if (dy) {
+          window.scrollBy(0, dy);
+          updateDragAt(dragCtx.lastX, dragCtx.lastY);
+        }
+
+        dragCtx.autoRaf = requestAnimationFrame(tick);
+      };
+
+      dragCtx.autoRaf = requestAnimationFrame(tick);
+    }
 
     function startDrag({ type, id, pointerId, pointerType, startX, startY, rowEl, containerEl }) {
       const rect = rowEl.getBoundingClientRect();
@@ -2068,7 +2145,7 @@
         type,
         id,
         pointerId,
-		pointerType: pointerType || "mouse",
+        pointerType: pointerType || "mouse",
         startX,
         startY,
         offsetX: startX - rect.left,
@@ -2077,60 +2154,46 @@
         placeholder,
         ghost,
         containerEl,
-        active: true
+        active: true,
+        lastX: startX,
+        lastY: startY,
+        autoRaf: null,
+        lastFrame: 0,
+        onTouchMove: null,
+        onTouchEnd: null
       };
 
-		document.body.style.userSelect = "none";
-		document.body.style.cursor = "grabbing";
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = "grabbing";
 
-		/* iPhone : on bloque le scroll et on suit le doigt en touchmove */
-		if (dragCtx.pointerType === "touch") {
-		  dragCtx.prevOverflow = document.body.style.overflow;
-		  document.body.style.overflow = "hidden";
+      // verrouillage scroll (user) pendant le drag
+      document.documentElement.classList.add("drag-lock");
+      document.body.classList.add("drag-lock");
 
-		  dragCtx.onTouchMove = (ev) => {
-			if (!dragCtx || !dragCtx.active) return;
-			if (ev.cancelable) ev.preventDefault();
+      // iPhone : suivre le doigt en touchmove/touchend
+      if (dragCtx.pointerType === "touch") {
+        dragCtx.onTouchMove = (ev) => {
+          if (!dragCtx || !dragCtx.active) return;
+          if (ev.cancelable) ev.preventDefault();
 
-			const t = ev.touches && ev.touches[0];
-			if (!t) return;
+          const t = ev.touches && ev.touches[0];
+          if (!t) return;
 
-			const x = t.clientX;
-			const y = t.clientY;
-			moveGhost(x, y);
+          updateDragAt(t.clientX, t.clientY);
+        };
 
-			const elUnder = document.elementFromPoint(x, y);
-			if (!elUnder) return;
+        dragCtx.onTouchEnd = () => {
+          if (!dragCtx || !dragCtx.active) return;
+          finishDrag(false);
+        };
 
-			const rowSelector = dragCtx.type === "store" ? ".store-row" : ".item-row";
-			const overRow = elUnder.closest(rowSelector);
-			if (!overRow || overRow === dragCtx.placeholder) return;
+        window.addEventListener("touchmove", dragCtx.onTouchMove, { passive: false });
+        window.addEventListener("touchend", dragCtx.onTouchEnd, { passive: true });
+        window.addEventListener("touchcancel", dragCtx.onTouchEnd, { passive: true });
+      }
 
-			const overRect = overRow.getBoundingClientRect();
-			const before = y < (overRect.top + overRect.height / 2);
-
-			if (before) {
-			  dragCtx.containerEl.insertBefore(dragCtx.placeholder, overRow);
-			} else {
-			  dragCtx.containerEl.insertBefore(dragCtx.placeholder, overRow.nextSibling);
-			}
-		  };
-
-		  dragCtx.onTouchEnd = () => {
-			if (!dragCtx || !dragCtx.active) return;
-			finishDrag(false);
-		  };
-
-		  window.addEventListener("touchmove", dragCtx.onTouchMove, { passive: false });
-		  window.addEventListener("touchend", dragCtx.onTouchEnd, { passive: true });
-		  window.addEventListener("touchcancel", dragCtx.onTouchEnd, { passive: true });
-		}
-
-		document.addEventListener("touchmove", preventScrollWhileDragging, { passive: false });
-		moveGhost(startX, startY);
-
-	  
-	  
+      updateDragAt(startX, startY);
+      startAutoScroll();
     }
 
     function moveGhost(x, y) {
@@ -2145,27 +2208,30 @@
 
       const { rowEl, placeholder, containerEl, ghost, type } = dragCtx;
 
+      if (dragCtx.autoRaf) {
+        cancelAnimationFrame(dragCtx.autoRaf);
+        dragCtx.autoRaf = null;
+      }
+
+      // déverrouillage scroll
+      document.documentElement.classList.remove("drag-lock");
+      document.body.classList.remove("drag-lock");
+
       containerEl.insertBefore(rowEl, placeholder);
       placeholder.remove();
       ghost.remove();
 
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
-      document.removeEventListener("touchmove", preventScrollWhileDragging);
-	  
-		if (dragCtx.onTouchMove) {
-		  window.removeEventListener("touchmove", dragCtx.onTouchMove);
-		  window.removeEventListener("touchend", dragCtx.onTouchEnd);
-		  window.removeEventListener("touchcancel", dragCtx.onTouchEnd);
-		  dragCtx.onTouchMove = null;
-		  dragCtx.onTouchEnd = null;
-		}
 
-		if (dragCtx.prevOverflow !== undefined) {
-		  document.body.style.overflow = dragCtx.prevOverflow;
-		  dragCtx.prevOverflow = undefined;
-		}
-		
+      if (dragCtx.onTouchMove) {
+        window.removeEventListener("touchmove", dragCtx.onTouchMove);
+        window.removeEventListener("touchend", dragCtx.onTouchEnd);
+        window.removeEventListener("touchcancel", dragCtx.onTouchEnd);
+        dragCtx.onTouchMove = null;
+        dragCtx.onTouchEnd = null;
+      }
+
       dragCtx.active = false;
 
       if (!cancel) {
@@ -2194,25 +2260,7 @@
       if (!dragCtx || !dragCtx.active) return;
       if (e.pointerId !== dragCtx.pointerId) return;
 
-      const x = e.clientX;
-      const y = e.clientY;
-      moveGhost(x, y);
-
-      const elUnder = document.elementFromPoint(x, y);
-      if (!elUnder) return;
-
-      const rowSelector = dragCtx.type === "store" ? ".store-row" : ".item-row";
-      const overRow = elUnder.closest(rowSelector);
-      if (!overRow || overRow === dragCtx.placeholder) return;
-
-      const overRect = overRow.getBoundingClientRect();
-      const before = y < (overRect.top + overRect.height / 2);
-
-      if (before) {
-        dragCtx.containerEl.insertBefore(dragCtx.placeholder, overRow);
-      } else {
-        dragCtx.containerEl.insertBefore(dragCtx.placeholder, overRow.nextSibling);
-      }
+      updateDragAt(e.clientX, e.clientY);
     }
 
     function handlePointerUp(e) {
@@ -2223,12 +2271,12 @@
 
     document.addEventListener("pointermove", (e) => handlePointerMove(e), { passive: true });
     document.addEventListener("pointerup", (e) => handlePointerUp(e), { passive: true });
-	
-	document.addEventListener("pointercancel", (e) => {
-	  // iOS envoie souvent pointercancel quand il croit qu’on scrolle : on ignore pendant un drag tactile
-	  if (dragCtx && dragCtx.active && dragCtx.pointerType === "touch") return;
-	  finishDrag(true);
-	}, { passive: true });
+
+    document.addEventListener("pointercancel", (e) => {
+      // iOS envoie souvent pointercancel quand il croit qu’on scrolle : on ignore pendant un drag tactile
+      if (dragCtx && dragCtx.active && dragCtx.pointerType === "touch") return;
+      finishDrag(true);
+    }, { passive: true });
 
     document.addEventListener("pointerdown", (e) => {
       // appui long sur une ligne = déplacer (magasins + articles)
@@ -2241,8 +2289,11 @@
       if (isStore && ui.screen !== "home") return;
       if (isItem && ui.screen !== "store") return;
 
-      // évite les conflits avec les contrôles
-      if (e.target.closest('[data-action="store-gear"], [data-action="item-gear"], .checkbox, .stepper, .searchbar, input, textarea, .modalOverlay')) return;
+      // Option A : pas de drag si filtre / recherche actifs
+      if (isItem && (ui.filterOn || ui.searchOpen || (ui.searchQuery && ui.searchQuery.trim()))) return;
+
+      // zones interdites : +/- et roue crantée
+      if (e.target.closest('[data-action="store-gear"], [data-action="item-gear"], [data-action="qty-dec"], [data-action="qty-inc"]')) return;
 
       const id = isStore ? rowEl.dataset.rowStore : rowEl.dataset.itemRow;
       if (!id) return;
@@ -2286,19 +2337,20 @@
       timer = setTimeout(() => {
         cleanup();
         if (moved) return;
+
         suppressClickUntil = Date.now() + 520;
-		
-		startDrag({
-		  type: isStore ? "store" : "item",
-		  id,
-		  pointerId,
-		  pointerType: e.pointerType || "mouse",
-		  startX,
-		  startY,
-		  rowEl,
-		  containerEl
-		});
-      }, 240);
+
+        startDrag({
+          type: isStore ? "store" : "item",
+          id,
+          pointerId,
+          pointerType: e.pointerType || "mouse",
+          startX,
+          startY,
+          rowEl,
+          containerEl
+        });
+      }, LONG_PRESS_MS);
     });
 
     /* ----------------------------
