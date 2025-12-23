@@ -2047,137 +2047,13 @@
       if (dragCtx && dragCtx.active) ev.preventDefault();
     };
 	
-    // iPhone : verrouille vraiment le scroll pendant le drag (sinon la page bouge)
-    function lockScrollForTouchDrag() {
-      const se = document.scrollingElement || document.documentElement;
-      const y = se.scrollTop || 0;
+	// iPhone: il faut un touchmove NON-passif déclaré dès le chargement,
+	// sinon Safari verrouille le geste en scroll et preventDefault ne marche plus.
+	const IS_TOUCH_DEVICE = (("ontouchstart" in window) || ((navigator.maxTouchPoints || 0) > 0));
 
-      dragCtx.scrollLocked = true;
-      dragCtx.scrollY = y;
-
-      dragCtx._prevBody = {
-        position: document.body.style.position,
-        top: document.body.style.top,
-        left: document.body.style.left,
-        right: document.body.style.right,
-        width: document.body.style.width,
-        overflow: document.body.style.overflow
-      };
-
-      document.body.style.position = "fixed";
-      document.body.style.top = `-${y}px`;
-      document.body.style.left = "0";
-      document.body.style.right = "0";
-      document.body.style.width = "100%";
-      document.body.style.overflow = "hidden";
-    }
-
-    function setLockedScrollY(y) {
-      if (!dragCtx || !dragCtx.scrollLocked) return;
-      dragCtx.scrollY = y;
-      document.body.style.top = `-${y}px`;
-    }
-
-    function unlockScrollAfterTouchDrag() {
-      if (!dragCtx || !dragCtx.scrollLocked) return;
-      const y = dragCtx.scrollY || 0;
-      const prev = dragCtx._prevBody || {};
-
-      document.body.style.position = prev.position || "";
-      document.body.style.top = prev.top || "";
-      document.body.style.left = prev.left || "";
-      document.body.style.right = prev.right || "";
-      document.body.style.width = prev.width || "";
-      document.body.style.overflow = prev.overflow || "";
-
-      // remet le scroll "normal" au même endroit
-      window.scrollTo(0, y);
-
-      dragCtx.scrollLocked = false;
-    }
-
-    function updateDragAt(x, y) {
-      if (!dragCtx || !dragCtx.active) return;
-
-      dragCtx.lastX = x;
-      dragCtx.lastY = y;
-
-      moveGhost(x, y);
-
-      const elUnder = document.elementFromPoint(x, y);
-      if (!elUnder) return;
-
-      const rowSelector = dragCtx.type === "store" ? ".store-row" : ".item-row";
-      const overRow = elUnder.closest(rowSelector);
-      if (!overRow || overRow === dragCtx.placeholder) return;
-
-      const overRect = overRow.getBoundingClientRect();
-      const before = y < (overRect.top + overRect.height / 2);
-
-      if (before) {
-        dragCtx.containerEl.insertBefore(dragCtx.placeholder, overRow);
-      } else {
-        dragCtx.containerEl.insertBefore(dragCtx.placeholder, overRow.nextSibling);
-      }
-    }
-
-    function setAutoScrollFromY(y) {
-      if (!dragCtx || !dragCtx.active) return;
-
-      const edge = 90;      // zone (px) en haut/bas qui déclenche l’auto-scroll
-      const maxSpeed = 18;  // vitesse max (px par frame)
-      const vh = window.innerHeight || 0;
-
-      let speed = 0;
-
-      if (y < edge) {
-        speed = -Math.ceil(((edge - y) / edge) * maxSpeed);
-      } else if (y > (vh - edge)) {
-        speed = Math.ceil(((y - (vh - edge)) / edge) * maxSpeed);
-      }
-
-      if (speed > maxSpeed) speed = maxSpeed;
-      if (speed < -maxSpeed) speed = -maxSpeed;
-
-      dragCtx.autoScrollSpeed = speed;
-
-      if (speed !== 0 && !dragCtx.autoScrollRaf) {
-        dragCtx.autoScrollRaf = requestAnimationFrame(autoScrollTick);
-      }
-      if (speed === 0 && dragCtx.autoScrollRaf) {
-        cancelAnimationFrame(dragCtx.autoScrollRaf);
-        dragCtx.autoScrollRaf = null;
-      }
-    }
-
-    function autoScrollTick() {
-      if (!dragCtx || !dragCtx.active) return;
-      if (!dragCtx.autoScrollSpeed) {
-        dragCtx.autoScrollRaf = null;
-        return;
-      }
-
-      const se = document.scrollingElement || document.documentElement;
-      const max = Math.max(0, se.scrollHeight - window.innerHeight);
-
-      if (dragCtx.scrollLocked) {
-        let next = (dragCtx.scrollY || 0) + dragCtx.autoScrollSpeed;
-        if (next < 0) next = 0;
-        if (next > max) next = max;
-        if (next !== dragCtx.scrollY) setLockedScrollY(next);
-      } else {
-        const cur = se.scrollTop || 0;
-        se.scrollTop = Math.min(max, Math.max(0, cur + dragCtx.autoScrollSpeed));
-      }
-
-      // la page bouge sous le doigt : on recalcule la position du drag
-      if (typeof dragCtx.lastX === "number" && typeof dragCtx.lastY === "number") {
-        updateDragAt(dragCtx.lastX, dragCtx.lastY);
-        setAutoScrollFromY(dragCtx.lastY);
-      }
-
-      dragCtx.autoScrollRaf = requestAnimationFrame(autoScrollTick);
-    }
+	if (IS_TOUCH_DEVICE) {
+	  document.addEventListener("touchmove", preventScrollWhileDragging, { passive: false });
+	}
 
     function startDrag({ type, id, pointerId, pointerType, startX, startY, rowEl, containerEl }) {
       const rect = rowEl.getBoundingClientRect();
@@ -2200,7 +2076,7 @@
         type,
         id,
         pointerId,
-        pointerType: pointerType || (("ontouchstart" in window) ? "touch" : "mouse"),
+		pointerType: pointerType || "mouse",
         startX,
         startY,
         offsetX: startX - rect.left,
@@ -2209,46 +2085,59 @@
         placeholder,
         ghost,
         containerEl,
-        active: true,
-        lastX: startX,
-        lastY: startY,
-        autoScrollSpeed: 0,
-        autoScrollRaf: null,
-        scrollLocked: false,
-        scrollY: 0
+        active: true
       };
 
 		document.body.style.userSelect = "none";
 		document.body.style.cursor = "grabbing";
 
-      // iPhone : on bloque VRAIMENT le scroll (sinon la page bouge au lieu de l’élément)
-      if (dragCtx.pointerType === "touch") {
-        lockScrollForTouchDrag();
+		/* iPhone : on bloque le scroll et on suit le doigt en touchmove */
+		if (dragCtx.pointerType === "touch") {
+		  dragCtx.prevOverflow = document.body.style.overflow;
+		  document.body.style.overflow = "hidden";
 
-        dragCtx.onTouchMove = (ev) => {
-          if (!dragCtx || !dragCtx.active) return;
-          ev.preventDefault();
-          const t = ev.touches && ev.touches[0];
-          if (!t) return;
+		  dragCtx.onTouchMove = (ev) => {
+			if (!dragCtx || !dragCtx.active) return;
+			if (ev.cancelable) ev.preventDefault();
 
-          updateDragAt(t.clientX, t.clientY);
-          setAutoScrollFromY(t.clientY);
-        };
+			const t = ev.touches && ev.touches[0];
+			if (!t) return;
 
-        dragCtx.onTouchEnd = () => {
-          if (!dragCtx || !dragCtx.active) return;
-          finishDrag(false);
-        };
+			const x = t.clientX;
+			const y = t.clientY;
+			moveGhost(x, y);
 
-        window.addEventListener("touchmove", dragCtx.onTouchMove, { passive: false });
-        window.addEventListener("touchend", dragCtx.onTouchEnd, { passive: true });
-        window.addEventListener("touchcancel", dragCtx.onTouchEnd, { passive: true });
-      }
+			const elUnder = document.elementFromPoint(x, y);
+			if (!elUnder) return;
 
-      document.addEventListener("touchmove", preventScrollWhileDragging, { passive: false });
+			const rowSelector = dragCtx.type === "store" ? ".store-row" : ".item-row";
+			const overRow = elUnder.closest(rowSelector);
+			if (!overRow || overRow === dragCtx.placeholder) return;
 
-      updateDragAt(startX, startY);
-      setAutoScrollFromY(startY);
+			const overRect = overRow.getBoundingClientRect();
+			const before = y < (overRect.top + overRect.height / 2);
+
+			if (before) {
+			  dragCtx.containerEl.insertBefore(dragCtx.placeholder, overRow);
+			} else {
+			  dragCtx.containerEl.insertBefore(dragCtx.placeholder, overRow.nextSibling);
+			}
+		  };
+
+		  dragCtx.onTouchEnd = () => {
+			if (!dragCtx || !dragCtx.active) return;
+			finishDrag(false);
+		  };
+
+		  window.addEventListener("touchmove", dragCtx.onTouchMove, { passive: false });
+		  window.addEventListener("touchend", dragCtx.onTouchEnd, { passive: true });
+		  window.addEventListener("touchcancel", dragCtx.onTouchEnd, { passive: true });
+		}
+
+		moveGhost(startX, startY);
+
+	  
+	  
     }
 
     function moveGhost(x, y) {
@@ -2269,7 +2158,6 @@
 
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
-      document.removeEventListener("touchmove", preventScrollWhileDragging);
 	  
 		if (dragCtx.onTouchMove) {
 		  window.removeEventListener("touchmove", dragCtx.onTouchMove);
@@ -2279,13 +2167,10 @@
 		  dragCtx.onTouchEnd = null;
 		}
 
-      if (dragCtx.autoScrollRaf) {
-        cancelAnimationFrame(dragCtx.autoScrollRaf);
-        dragCtx.autoScrollRaf = null;
-      }
-      dragCtx.autoScrollSpeed = 0;
-
-      unlockScrollAfterTouchDrag();
+		if (dragCtx.prevOverflow !== undefined) {
+		  document.body.style.overflow = dragCtx.prevOverflow;
+		  dragCtx.prevOverflow = undefined;
+		}
 		
       dragCtx.active = false;
 
@@ -2311,18 +2196,31 @@
       dragCtx = null;
     }
 
-	function handlePointerMove(e) {
-		  if (!dragCtx || !dragCtx.active) return;
-		  if (e.pointerId !== dragCtx.pointerId) return;
+    function handlePointerMove(e) {
+      if (!dragCtx || !dragCtx.active) return;
+      if (e.pointerId !== dragCtx.pointerId) return;
+	  if (dragCtx.pointerType === "touch") return;
 
-		  // iPhone : bloque le scroll natif pendant un drag tactile
-		  if (dragCtx.pointerType === "touch") {
-			if (e.cancelable) e.preventDefault();
-		  }
+      const x = e.clientX;
+      const y = e.clientY;
+      moveGhost(x, y);
 
-		  updateDragAt(e.clientX, e.clientY);
-		  setAutoScrollFromY(e.clientY);
-		}
+      const elUnder = document.elementFromPoint(x, y);
+      if (!elUnder) return;
+
+      const rowSelector = dragCtx.type === "store" ? ".store-row" : ".item-row";
+      const overRow = elUnder.closest(rowSelector);
+      if (!overRow || overRow === dragCtx.placeholder) return;
+
+      const overRect = overRow.getBoundingClientRect();
+      const before = y < (overRect.top + overRect.height / 2);
+
+      if (before) {
+        dragCtx.containerEl.insertBefore(dragCtx.placeholder, overRow);
+      } else {
+        dragCtx.containerEl.insertBefore(dragCtx.placeholder, overRow.nextSibling);
+      }
+    }
 
     function handlePointerUp(e) {
       if (!dragCtx) return;
@@ -2330,7 +2228,7 @@
       finishDrag(false);
     }
 
-	document.addEventListener("pointermove", (e) => handlePointerMove(e), { passive: false });
+    document.addEventListener("pointermove", (e) => handlePointerMove(e), { passive: true });
     document.addEventListener("pointerup", (e) => handlePointerUp(e), { passive: true });
 	
 	document.addEventListener("pointercancel", (e) => {
@@ -2401,7 +2299,7 @@
 		  type: isStore ? "store" : "item",
 		  id,
 		  pointerId,
-		  pointerType: e.pointerType || (("ontouchstart" in window) ? "touch" : "mouse"),
+		  pointerType: IS_TOUCH_DEVICE ? "touch" : (e.pointerType || "mouse"),
 		  startX,
 		  startY,
 		  rowEl,
