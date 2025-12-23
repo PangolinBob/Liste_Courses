@@ -2050,6 +2050,16 @@
        Drag & drop (magasins + articles)
     ---------------------------- */
     let dragCtx = null;
+    let touchHold = null;
+
+    function findTouch(touchList, id) {
+      if (!touchList) return null;
+      for (let i = 0; i < touchList.length; i++) {
+        const t = touchList[i];
+        if (t && t.identifier === id) return t;
+      }
+      return null;
+    }
 
     // Réglages (validés)
     const LONG_PRESS_MS = 360;          // appui long (Option B)
@@ -2124,7 +2134,8 @@
       dragCtx.autoRaf = requestAnimationFrame(tick);
     }
 
-    function startDrag({ type, id, pointerId, pointerType, startX, startY, rowEl, containerEl }) {
+    function startDrag({ type, id, pointerId, pointerType, touchId, startX, startY, rowEl, containerEl }) {
+
       const rect = rowEl.getBoundingClientRect();
 
       const placeholder = rowEl.cloneNode(true);
@@ -2144,8 +2155,9 @@
       dragCtx = {
         type,
         id,
-        pointerId,
+        pointerId: (typeof pointerId === "number") ? pointerId : -1,
         pointerType: pointerType || "mouse",
+        touchId: (typeof touchId === "number") ? touchId : null,
         startX,
         startY,
         offsetX: startX - rect.left,
@@ -2160,7 +2172,8 @@
         autoRaf: null,
         lastFrame: 0,
         onTouchMove: null,
-        onTouchEnd: null
+        onTouchEnd: null,
+        onTouchCancel: null
       };
 
       document.body.style.userSelect = "none";
@@ -2170,26 +2183,50 @@
       document.documentElement.classList.add("drag-lock");
       document.body.classList.add("drag-lock");
 
-      // iPhone : suivre le doigt en touchmove/touchend
+      // iPhone : drag 100% tactile (1 seul doigt, du début à la fin)
       if (dragCtx.pointerType === "touch") {
+        const myId = dragCtx.touchId;
+
         dragCtx.onTouchMove = (ev) => {
           if (!dragCtx || !dragCtx.active) return;
-          if (ev.cancelable) ev.preventDefault();
 
-          const t = ev.touches && ev.touches[0];
+          const t = (myId == null)
+            ? (ev.touches && ev.touches[0])
+            : findTouch(ev.touches, myId);
+
           if (!t) return;
 
+          if (ev.cancelable) ev.preventDefault();
           updateDragAt(t.clientX, t.clientY);
         };
 
-        dragCtx.onTouchEnd = () => {
+        dragCtx.onTouchEnd = (ev) => {
           if (!dragCtx || !dragCtx.active) return;
+
+          const ended = (myId == null)
+            ? true
+            : findTouch(ev.changedTouches, myId);
+
+          if (!ended) return;
+
           finishDrag(false);
         };
 
-        window.addEventListener("touchmove", dragCtx.onTouchMove, { passive: false });
-        window.addEventListener("touchend", dragCtx.onTouchEnd, { passive: true });
-        window.addEventListener("touchcancel", dragCtx.onTouchEnd, { passive: true });
+        dragCtx.onTouchCancel = (ev) => {
+          if (!dragCtx || !dragCtx.active) return;
+
+          const cancelled = (myId == null)
+            ? true
+            : findTouch(ev.changedTouches, myId);
+
+          if (!cancelled) return;
+
+          finishDrag(true);
+        };
+
+        window.addEventListener("touchmove", dragCtx.onTouchMove, { passive: false, capture: true });
+        window.addEventListener("touchend", dragCtx.onTouchEnd, { passive: true, capture: true });
+        window.addEventListener("touchcancel", dragCtx.onTouchCancel, { passive: true, capture: true });
       }
 
       updateDragAt(startX, startY);
@@ -2225,11 +2262,12 @@
       document.body.style.cursor = "";
 
       if (dragCtx.onTouchMove) {
-        window.removeEventListener("touchmove", dragCtx.onTouchMove);
-        window.removeEventListener("touchend", dragCtx.onTouchEnd);
-        window.removeEventListener("touchcancel", dragCtx.onTouchEnd);
+        window.removeEventListener("touchmove", dragCtx.onTouchMove, true);
+        window.removeEventListener("touchend", dragCtx.onTouchEnd, true);
+        window.removeEventListener("touchcancel", dragCtx.onTouchCancel, true);
         dragCtx.onTouchMove = null;
         dragCtx.onTouchEnd = null;
+        dragCtx.onTouchCancel = null;
       }
 
       dragCtx.active = false;
@@ -2277,8 +2315,104 @@
       if (dragCtx && dragCtx.active && dragCtx.pointerType === "touch") return;
       finishDrag(true);
     }, { passive: true });
+	
+    // TACTILE (iPhone) : appui long en touchstart (1 doigt) = drag
+    document.addEventListener("touchstart", (e) => {
+      if (dragCtx && dragCtx.active) return;
+      if (touchHold) return;
+
+      // un seul doigt
+      if (!e.touches || e.touches.length !== 1) return;
+
+      const rowEl = e.target.closest(".store-row, .item-row");
+      if (!rowEl) return;
+
+      const isStore = rowEl.classList.contains("store-row");
+      const isItem  = rowEl.classList.contains("item-row");
+
+      if (isStore && ui.screen !== "home") return;
+      if (isItem && ui.screen !== "store") return;
+
+      // Option A : pas de drag si filtre / recherche actifs
+      if (isItem && (ui.filterOn || ui.searchOpen || (ui.searchQuery && ui.searchQuery.trim()))) return;
+
+      // zones interdites : +/- et roue crantée
+      if (e.target.closest('[data-action="store-gear"], [data-action="item-gear"], [data-action="qty-dec"], [data-action="qty-inc"]')) return;
+
+      const id = isStore ? rowEl.dataset.rowStore : rowEl.dataset.itemRow;
+      if (!id) return;
+
+      const containerEl = rowEl.parentElement;
+      if (!containerEl) return;
+
+      const t0 = e.touches[0];
+      const touchId = t0.identifier;
+      const startX = t0.clientX;
+      const startY = t0.clientY;
+
+      touchHold = { touchId, timer: null, moved: false };
+
+      const cleanup = () => {
+        if (!touchHold) return;
+        if (touchHold.timer) clearTimeout(touchHold.timer);
+        window.removeEventListener("touchmove", onMove, true);
+        window.removeEventListener("touchend", onEnd, true);
+        window.removeEventListener("touchcancel", onCancel, true);
+        touchHold = null;
+      };
+
+      const onMove = (ev) => {
+        if (!touchHold) return;
+        const t = findTouch(ev.touches, touchId);
+        if (!t) return;
+        const dx = Math.abs(t.clientX - startX);
+        const dy = Math.abs(t.clientY - startY);
+        if (dx + dy > 10) { // petit seuil : si ça bouge, on laisse scroller
+          touchHold.moved = true;
+          cleanup();
+        }
+      };
+
+      const onEnd = (ev) => {
+        const ended = findTouch(ev.changedTouches, touchId);
+        if (!ended) return;
+        cleanup();
+      };
+
+      const onCancel = (ev) => {
+        const ended = findTouch(ev.changedTouches, touchId);
+        if (!ended) return;
+        cleanup();
+      };
+
+      window.addEventListener("touchmove", onMove, { passive: true, capture: true });
+      window.addEventListener("touchend", onEnd, { passive: true, capture: true });
+      window.addEventListener("touchcancel", onCancel, { passive: true, capture: true });
+
+      touchHold.timer = setTimeout(() => {
+        const held = touchHold;
+        cleanup();
+        if (!held || held.moved) return;
+
+        // bloque le "clic fantôme" au lâcher
+        suppressClickUntil = Date.now() + 1200;
+
+        startDrag({
+          type: isStore ? "store" : "item",
+          id,
+          pointerId: -1,
+          pointerType: "touch",
+          touchId,
+          startX,
+          startY,
+          rowEl,
+          containerEl
+        });
+      }, LONG_PRESS_MS);
+    }, { passive: true });
 
     document.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "touch") return;
       // appui long sur une ligne = déplacer (magasins + articles)
       const rowEl = e.target.closest(".store-row, .item-row");
       if (!rowEl) return;
