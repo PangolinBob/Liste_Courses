@@ -373,7 +373,7 @@
 	}
 	button[data-action="store-gear"] .icon svg,
 	button[data-action="item-gear"] .icon svg {
-	  transform: translateY(1px);
+	  transform: translateY(1.5px);
 	}	
 
     /* cards & lists */
@@ -2046,14 +2046,6 @@
     const preventScrollWhileDragging = (ev) => {
       if (dragCtx && dragCtx.active) ev.preventDefault();
     };
-	
-	// iPhone: il faut un touchmove NON-passif déclaré dès le chargement,
-	// sinon Safari verrouille le geste en scroll et preventDefault ne marche plus.
-	const IS_TOUCH_DEVICE = (("ontouchstart" in window) || ((navigator.maxTouchPoints || 0) > 0));
-
-	if (IS_TOUCH_DEVICE) {
-	  document.addEventListener("touchmove", preventScrollWhileDragging, { passive: false });
-	}
 
     function startDrag({ type, id, pointerId, pointerType, startX, startY, rowEl, containerEl }) {
       const rect = rowEl.getBoundingClientRect();
@@ -2134,6 +2126,7 @@
 		  window.addEventListener("touchcancel", dragCtx.onTouchEnd, { passive: true });
 		}
 
+		document.addEventListener("touchmove", preventScrollWhileDragging, { passive: false });
 		moveGhost(startX, startY);
 
 	  
@@ -2158,6 +2151,7 @@
 
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
+      document.removeEventListener("touchmove", preventScrollWhileDragging);
 	  
 		if (dragCtx.onTouchMove) {
 		  window.removeEventListener("touchmove", dragCtx.onTouchMove);
@@ -2199,7 +2193,6 @@
     function handlePointerMove(e) {
       if (!dragCtx || !dragCtx.active) return;
       if (e.pointerId !== dragCtx.pointerId) return;
-	  if (dragCtx.pointerType === "touch") return;
 
       const x = e.clientX;
       const y = e.clientY;
@@ -2299,7 +2292,7 @@
 		  type: isStore ? "store" : "item",
 		  id,
 		  pointerId,
-		  pointerType: IS_TOUCH_DEVICE ? "touch" : (e.pointerType || "mouse"),
+		  pointerType: e.pointerType || "mouse",
 		  startX,
 		  startY,
 		  rowEl,
