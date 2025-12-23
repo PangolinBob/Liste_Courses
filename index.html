@@ -2227,7 +2227,7 @@
 
         dragCtx.onTouchMove = (ev) => {
           if (!dragCtx || !dragCtx.active) return;
-          if (ev.cancelable) ev.preventDefault();
+          ev.preventDefault();
           const t = ev.touches && ev.touches[0];
           if (!t) return;
 
@@ -2311,13 +2311,18 @@
       dragCtx = null;
     }
 
-    function handlePointerMove(e) {
-      if (!dragCtx || !dragCtx.active) return;
-      if (e.pointerId !== dragCtx.pointerId) return;
+	function handlePointerMove(e) {
+		  if (!dragCtx || !dragCtx.active) return;
+		  if (e.pointerId !== dragCtx.pointerId) return;
 
-      updateDragAt(e.clientX, e.clientY);
-      setAutoScrollFromY(e.clientY);
-    }
+		  // iPhone : bloque le scroll natif pendant un drag tactile
+		  if (dragCtx.pointerType === "touch") {
+			if (e.cancelable) e.preventDefault();
+		  }
+
+		  updateDragAt(e.clientX, e.clientY);
+		  setAutoScrollFromY(e.clientY);
+		}
 
     function handlePointerUp(e) {
       if (!dragCtx) return;
@@ -2325,7 +2330,7 @@
       finishDrag(false);
     }
 
-    document.addEventListener("pointermove", (e) => handlePointerMove(e), { passive: true });
+	document.addEventListener("pointermove", (e) => handlePointerMove(e), { passive: false });
     document.addEventListener("pointerup", (e) => handlePointerUp(e), { passive: true });
 	
 	document.addEventListener("pointercancel", (e) => {
@@ -2396,7 +2401,7 @@
 		  type: isStore ? "store" : "item",
 		  id,
 		  pointerId,
-		  pointerType: e.pointerType || "mouse",
+		  pointerType: e.pointerType || (("ontouchstart" in window) ? "touch" : "mouse"),
 		  startX,
 		  startY,
 		  rowEl,
