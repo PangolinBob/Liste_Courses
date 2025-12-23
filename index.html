@@ -288,6 +288,7 @@
 	}
 	
 	.topbar .right {
+		  padding-right: 7px;	
 		  display: flex;
 		  gap: 10px;
 		  margin-left: auto;
@@ -367,6 +368,13 @@
       color: var(--icon);
     }
     .icon svg { width: 100%; height: 100%; display:block; }
+	button[data-action="toggle-theme"] .icon svg {
+	  transform: translateY(2px);
+	}
+	button[data-action="store-gear"] .icon svg,
+	button[data-action="item-gear"] .icon svg {
+	  transform: translateY(1px);
+	}	
 
     /* cards & lists */
     .card {
@@ -438,11 +446,44 @@
       margin: 0;
 	  
 	  font-size: 22px;
-	  color : rgba(255,255,255);
 	  font-weight: 500;
 	  letter-spacing: .2px;
 	  line-height: 1.15;	  
     }
+	
+	/* nom + badge sur une même ligne */
+	.store-main{
+	  width: 100%;
+	  display: flex;
+	  align-items: center;
+	  justify-content: space-between;
+	  gap: 10px;
+	}
+
+	/* badge rond "reste" */
+	.store-badge{
+	  min-width: 28px;
+	  height: 28px;
+	  padding: 0 8px;            /* permet 2 chiffres sans casser */
+	  border-radius: 999px;
+	  display: inline-flex;
+	  align-items: center;
+	  justify-content: center;
+
+	  font-size: 13px;
+	  font-weight: 700;
+	  letter-spacing: .2px;
+
+	  background: rgba(34,197,94,.18);
+	  border: 1px solid rgba(34,197,94,.32);
+	  color: rgba(34,197,94,.95);
+	}
+
+	/* en dark, un peu plus visible */
+	[data-theme="dark"] .store-badge{
+	  background: rgba(34,197,94,.22);
+	  border-color: rgba(34,197,94,.40);
+	}
 
     /* header for store screen */
     .store-header {
@@ -613,8 +654,8 @@
     }
     .stepper .qty {
       text-align: center;
-      font-weight: 820;
-      font-size: 14px;
+      font-weight: 500;
+      font-size: 16px;
       letter-spacing: .2px;
     }
 
@@ -1368,21 +1409,33 @@
 
       const lastBackup = formatDateTime(appData.lastBackupISO);
 
-      const storesHtml = appData.stores.map(s => `
-        <div class="row store-row card" data-row-store="${s.id}">
-          <button class="btn flat" data-action="open-store" data-id="${s.id}" style="justify-content:flex-start; padding: 10px 12px; border-radius: 16px; border: none; background: transparent;">
-            <div class="name">${escapeHtml(s.name)}</div>
-          </button>
+		const storesHtml = appData.stores.map(s => {
+		  const rest = (s.items || []).filter(it => it && it.planned).length;
+		  const badge = rest > 0
+			? `<span class="store-badge" aria-label="${rest} à acheter">${rest}</span>`
+			: ``;
 
-          <div class="right">
-            <button class="btn icon flat" data-action="store-gear" data-id="${s.id}" aria-label="Options magasin">${icon("gear")}</button>
-          </div>
-        </div>
-      `).join("");
+		  return `
+			<div class="row store-row card" data-row-store="${s.id}">
+			  <button class="btn flat" data-action="open-store" data-id="${s.id}"
+				style="width:100%; justify-content:flex-start; padding: 10px 12px; border-radius: 16px; border: none; background: transparent;">
+				<div class="store-main" style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:10px;">
+				  <span class="name">${escapeHtml(s.name)}</span>
+				  ${badge}
+				</div>
+				
+			  </button>
+
+			  <div class="right">
+				<button class="btn icon flat" data-action="store-gear" data-id="${s.id}" aria-label="Options magasin">${icon("gear")}</button>
+			  </div>
+			</div>
+		  `;
+		}).join("");
 
       appEl.innerHTML = `
         <div class="topbar">
-          <div class="title">Magasins</div>
+          <div class="title">Listes</div>
           <div class="right">
             <button class="btn icon" data-action="toggle-theme" aria-label="${escapeHtml(themeLabel)}">
               ${theme === "dark" ? icon("moon") : icon("sun")}
