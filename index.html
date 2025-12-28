@@ -287,6 +287,19 @@
 	  pointer-events: none; /* évite de bloquer le clic sur l’icône */
 	}
 	
+	.topbar .title[data-action]{
+	  pointer-events: auto;
+	  cursor: pointer;
+	  -webkit-tap-highlight-color: transparent;
+	  /* évite de recouvrir le bouton thème à droite */
+	  width: calc(100% - 120px);
+	  transition: opacity 120ms ease;
+	}
+	
+	.topbar .title[data-action]:active{
+	  opacity: .75;
+	}
+	
 	.topbar .right {
 		  padding-right: 7px;	
 		  display: flex;
@@ -1634,6 +1647,11 @@
     ---------------------------- */
 
     function render() {
+      if (ui.screen === "settings") {
+        renderSettings();
+        return;
+      }
+
       if (ui.screen === "store") {
         const store = getStore(ui.storeId);
         if (!store) {
@@ -1646,6 +1664,7 @@
         renderStore(store);
         return;
       }
+
       renderHome();
     }
 
@@ -1655,8 +1674,6 @@
 
       const theme = appData.prefs.theme;
       const themeLabel = theme === "dark" ? "Mode sombre" : "Mode clair";
-
-      const lastBackup = formatDateTime(appData.lastBackupISO);
 
 		const storesHtml = appData.stores.map(s => {
 		  const rest = (s.items || []).filter(it => it && it.planned).length;
@@ -1684,7 +1701,7 @@
 
       appEl.innerHTML = `
         <div class="topbar">
-          <div class="title">Listes</div>
+          <div class="title" data-action="open-settings" role="button" aria-label="Ouvrir les réglages">Listes</div>
           <div class="right">
             <button class="btn icon" data-action="toggle-theme" aria-label="${escapeHtml(themeLabel)}">
               ${theme === "dark" ? icon("moon") : icon("sun")}
@@ -1698,7 +1715,28 @@
 
         <div class="footer">
           <button class="btn primary" data-action="add-store">${icon("plus")} Ajouter un magasin</button>
+        </div>		
+      `;
+    }
 
+    function renderSettings() {
+      ui.searchOpen = false;
+      ui.searchQuery = "";
+
+      const theme = appData.prefs.theme;
+      const themeLabel = theme === "dark" ? "Mode sombre" : "Mode clair";
+      const lastBackup = formatDateTime(appData.lastBackupISO);
+
+      appEl.innerHTML = `
+        <div class="store-header">
+          <button class="btn icon" data-action="back-home" aria-label="Retour">${icon("back")}</button>
+          <div class="store-title">Réglages</div>
+          <button class="btn icon" data-action="toggle-theme" aria-label="${escapeHtml(themeLabel)}">
+            ${theme === "dark" ? icon("moon") : icon("sun")}
+          </button>
+        </div>
+
+        <div class="footer">
           <div class="card pad">
             <div class="two">
               <button class="btn" data-action="export">${icon("download")} Sauvegarder</button>
@@ -1829,7 +1867,16 @@
         toast(appData.prefs.theme === "dark" ? "Mode sombre" : "Mode clair");
         return;
       }
-
+	  
+      if (action === "open-settings") {
+        ui.screen = "settings";
+        ui.storeId = null;
+        ui.searchOpen = false;
+        ui.searchQuery = "";
+        render();
+        return;
+      }
+	  
       if (action === "open-store") {
         openStore(id);
         return;
