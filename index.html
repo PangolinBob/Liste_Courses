@@ -966,6 +966,15 @@
 	  --glass-edge: rgba(255,255,255,.22);
 	  --glass-shadow: 0 18px 55px rgba(0,0,0,.38);
 	  --halo-opacity: 1;
+	  /* Reflet "glossy" (utilisé dans les backgrounds glass) */
+	  --glass-shine:
+		linear-gradient(180deg, rgba(255,255,255,.16), transparent 62%),
+		linear-gradient(120deg,
+		  rgba(255,255,255,0) 0%,
+		  rgba(255,255,255,0) 34%,
+		  rgba(255,255,255,.28) 45%,
+		  rgba(255,255,255,.08) 52%,
+		  rgba(255,255,255,0) 62%);	  
 	}
 
 	/* On simplifie le fond (le reste vient des halos) */
@@ -1007,6 +1016,7 @@
 	.ghost .ghostInner,
 	.pill{
 	  background:
+		var(--glass-shine),
 		radial-gradient(140% 110% at 12% 0%, var(--glass-edge), transparent 55%),
 		linear-gradient(135deg, var(--glass-surface-strong), var(--glass-surface));
 	  border: 1px solid var(--glass-border);
@@ -1023,6 +1033,7 @@
 	.btn:hover,
 	.btn.flat:hover{
 	  background:
+		var(--glass-shine),
 		radial-gradient(140% 110% at 12% 0%, var(--glass-edge), transparent 55%),
 		linear-gradient(135deg, var(--glass-surface-strong), var(--glass-surface-strong));
 	  border-color: var(--glass-border);
@@ -1040,6 +1051,7 @@
 	/* Les boutons "flat" doivent rester en verre (sinon ils redeviennent transparents) */
 	.btn.flat{
 	  background:
+		var(--glass-shine),
 		radial-gradient(140% 110% at 12% 0%, var(--glass-edge), transparent 55%),
 		linear-gradient(135deg, var(--glass-surface-strong), var(--glass-surface));
 	  border-color: var(--glass-border);
@@ -1048,24 +1060,28 @@
 	/* Boutons primary / danger : teinte légère mais toujours verre */
 	.btn.primary{
 	  background:
+		var(--glass-shine),
 		radial-gradient(140% 110% at 12% 0%, rgba(255,255,255,.22), transparent 55%),
 		linear-gradient(135deg, rgba(59,130,246,.28), var(--glass-surface));
 	  border-color: rgba(59,130,246,.45);
 	}
 	.btn.primary:hover{
 	  background:
+		var(--glass-shine),
 		radial-gradient(140% 110% at 12% 0%, rgba(255,255,255,.24), transparent 55%),
 		linear-gradient(135deg, rgba(59,130,246,.34), var(--glass-surface-strong));
 	  border-color: rgba(59,130,246,.55);
 	}
 	.btn.danger{
 	  background:
+		var(--glass-shine),
 		radial-gradient(140% 110% at 12% 0%, rgba(255,255,255,.18), transparent 55%),
 		linear-gradient(135deg, rgba(239,68,68,.22), var(--glass-surface));
 	  border-color: rgba(239,68,68,.40);
 	}
 	.btn.danger:hover{
 	  background:
+		var(--glass-shine),
 		radial-gradient(140% 110% at 12% 0%, rgba(255,255,255,.20), transparent 55%),
 		linear-gradient(135deg, rgba(239,68,68,.28), var(--glass-surface-strong));
 	  border-color: rgba(239,68,68,.50);
@@ -1074,6 +1090,7 @@
 	/* Items : une vraie carte en verre (au lieu du transparent actuel) */
 	.item-row{
 	  background:
+		var(--glass-shine),
 		radial-gradient(140% 110% at 12% 0%, var(--glass-edge), transparent 55%),
 		linear-gradient(135deg, var(--glass-surface-strong), var(--glass-surface));
 	  border-color: var(--glass-border);
@@ -1082,6 +1099,7 @@
 	/* Etat "à acheter" : bordure + lueur verte (pas de remplissage vert) */
 	.item-row.planned{
 	  background:
+		var(--glass-shine),
 		radial-gradient(140% 110% at 12% 0%, var(--glass-edge), transparent 55%),
 		linear-gradient(135deg, var(--glass-surface-strong), var(--glass-surface));
 	  border-color: rgba(34,197,94,.70);
@@ -1157,7 +1175,7 @@
        Tu touches uniquement ces 2 lignes.
     ---------------------------- */
     const VISUAL = {
-      GLASS: 1.0,   // 1.0 = normal, 1.35 = très marqué (ton choix)
+      GLASS: 1.35,   // 1.0 = normal, 1.35 = très marqué (ton choix)
       CONTRAST: 0    // 0 = normal, 1 = contraste (plus lisible, moins de halos/grain)
     };
 
@@ -1178,8 +1196,8 @@
       if (isDark) {
         surfaceA = 0.10 - (g - 1) * 0.04 + c * 0.08;
         strongA  = surfaceA + 0.04;
-        borderA  = 0.26 + (g - 1) * 0.24 + c * 0.10;
-        edgeA    = 0.16 + (g - 1) * 0.18 + c * 0.08;
+        borderA  = 0.34 + (g - 1) * 0.28 + c * 0.10;
+        edgeA    = 0.22 + (g - 1) * 0.22 + c * 0.08;
         shadowA  = 0.34 + (g - 1) * 0.14;
       } else {
         surfaceA = 0.66 - (g - 1) * 0.06 + c * 0.10;
@@ -1216,7 +1234,7 @@
 
       // halos + grain (contraste = plus sage)
       root.setProperty("--halo-opacity",  c ? "0.55" : "1");
-      root.setProperty("--grain-opacity", c ? "0.03" : (isDark ? "0.08" : "0.06"));
+      root.setProperty("--grain-opacity", c ? "0.01" : (isDark ? "0.02" : "0.015"));
     }
 
     // applique dès maintenant (au chargement)
