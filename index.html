@@ -2649,15 +2649,18 @@
     document.addEventListener("pointermove", (e) => handlePointerMove(e), { passive: true });
     document.addEventListener("pointerup", (e) => handlePointerUp(e), { passive: true });
 
-    document.addEventListener("pointercancel", (e) => {
-      if (dragCtx && dragCtx.active) {
-        if (e.pointerId === dragCtx.pointerId || dragCtx.pointerType === "touch") {
-          finishDrag(true, { reason: "pointercancel" });
-          return;
-        }
-      }
-      finishDrag(true, { reason: "pointercancel-global" });
-    }, { passive: true });
+	document.addEventListener("pointercancel", (e) => {
+	  // iOS envoie fréquemment pointercancel en plein geste tactile :
+	  // on laisse la fin réelle au pipeline touchend/touchcancel.
+	  if (dragCtx && dragCtx.active && dragCtx.pointerType === "touch") return;
+
+	  if (dragCtx && dragCtx.active && e.pointerId === dragCtx.pointerId) {
+		finishDrag(true, { reason: "pointercancel" });
+		return;
+	  }
+
+	  finishDrag(true, { reason: "pointercancel-global" });
+	}, { passive: true });
 
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState !== "visible") {
