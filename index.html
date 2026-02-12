@@ -2360,8 +2360,8 @@
     /* ----------------------------
        Drag & drop (magasins + articles)
     ---------------------------- */
-    let dragCtx = null;
-    let touchHold = null;
+	let dragCtx = null;
+
 
     function findTouch(touchList, id) {
       if (!touchList) return null;
@@ -2610,21 +2610,35 @@
       dragCtx.active = false;
 
       if (!cancel) {
-        pushUndo();
+        let didChange = false;
+
         if (type === "store") {
           const ids = $$(".store-row", containerEl).map(el => el.dataset.rowStore).filter(Boolean);
-          appData.stores = ids.map(id => appData.stores.find(s => s.id === id)).filter(Boolean);
+          const prevIds = appData.stores.map(s => s.id);
+          didChange = ids.length === prevIds.length && ids.some((id, i) => id !== prevIds[i]);
+
+          if (didChange) {
+            pushUndo();
+            appData.stores = ids.map(id => appData.stores.find(s => s.id === id)).filter(Boolean);
+          }
         } else if (type === "item") {
           const store = getStore(ui.storeId);
           if (store) {
             const ids = $$(".item-row", containerEl).map(el => el.dataset.itemRow).filter(Boolean);
-            store.items = ids.map(id => store.items.find(it => it.id === id)).filter(Boolean);
+            const prevIds = store.items.map(it => it.id);
+            didChange = ids.length === prevIds.length && ids.some((id, i) => id !== prevIds[i]);
+
+            if (didChange) {
+              pushUndo();
+              store.items = ids.map(id => store.items.find(it => it.id === id)).filter(Boolean);
+            }
           }
         }
-        saveAppData();
+
+        if (didChange) saveAppData();
         if (!skipRender) {
           render();
-          toast("Ordre mis à jour");
+          if (didChange) toast("Ordre mis à jour");
         }
       } else {
         if (!skipRender) render();
@@ -2676,103 +2690,12 @@
       finishDrag(true, { reason: "window-blur" });
     }, { passive: true });
 	
-    // TACTILE (iPhone) : appui long en touchstart (1 doigt) = drag
-    document.addEventListener("touchstart", (e) => {
-      if (dragCtx && dragCtx.active) return;
-      if (touchHold) return;
+	// Drag unifie : pointer events (touch + souris + stylet)
 
-      // un seul doigt
-      if (!e.touches || e.touches.length !== 1) return;
 
-      const rowEl = e.target.closest(".store-row, .item-row");
-      if (!rowEl) return;
-
-      const isStore = rowEl.classList.contains("store-row");
-      const isItem  = rowEl.classList.contains("item-row");
-
-      if (isStore && ui.screen !== "home") return;
-      if (isItem && ui.screen !== "store") return;
-
-      // Option A : pas de drag si filtre / recherche actifs
-      if (isItem && (ui.filterOn || ui.searchOpen || (ui.searchQuery && ui.searchQuery.trim()))) return;
-
-      // zones interdites : +/- et roue crantée
-      if (e.target.closest('[data-action="store-gear"], [data-action="item-gear"], [data-action="qty-dec"], [data-action="qty-inc"]')) return;
-
-      const id = isStore ? rowEl.dataset.rowStore : rowEl.dataset.itemRow;
-      if (!id) return;
-
-      const containerEl = rowEl.parentElement;
-      if (!containerEl) return;
-
-      const t0 = e.touches[0];
-      const touchId = t0.identifier;
-      const startX = t0.clientX;
-      const startY = t0.clientY;
-
-      touchHold = { touchId, timer: null, moved: false };
-
-      const cleanup = () => {
-        if (!touchHold) return;
-        if (touchHold.timer) clearTimeout(touchHold.timer);
-        window.removeEventListener("touchmove", onMove, true);
-        window.removeEventListener("touchend", onEnd, true);
-        window.removeEventListener("touchcancel", onCancel, true);
-        touchHold = null;
-      };
-
-      const onMove = (ev) => {
-        if (!touchHold) return;
-        const t = findTouch(ev.touches, touchId);
-        if (!t) return;
-        const dx = Math.abs(t.clientX - startX);
-        const dy = Math.abs(t.clientY - startY);
-        if (dx + dy > 10) { // petit seuil : si ça bouge, on laisse scroller
-          touchHold.moved = true;
-          cleanup();
-        }
-      };
-
-      const onEnd = (ev) => {
-        const ended = findTouch(ev.changedTouches, touchId);
-        if (!ended) return;
-        cleanup();
-      };
-
-      const onCancel = (ev) => {
-        const ended = findTouch(ev.changedTouches, touchId);
-        if (!ended) return;
-        cleanup();
-      };
-
-      window.addEventListener("touchmove", onMove, { passive: true, capture: true });
-      window.addEventListener("touchend", onEnd, { passive: true, capture: true });
-      window.addEventListener("touchcancel", onCancel, { passive: true, capture: true });
-
-      touchHold.timer = setTimeout(() => {
-        const held = touchHold;
-        cleanup();
-        if (!held || held.moved) return;
-
-        // bloque le "clic fantôme" au lâcher
-        suppressClickUntil = Date.now() + 1200;
-
-        startDrag({
-          type: isStore ? "store" : "item",
-          id,
-          pointerId: -1,
-          pointerType: "touch",
-          touchId,
-          startX,
-          startY,
-          rowEl,
-          containerEl
-        });
-      }, LONG_PRESS_MS);
-    }, { passive: true });
-
-    document.addEventListener("pointerdown", (e) => {
-      if (e.pointerType === "touch") return;
+	document.addEventListener("pointerdown", (e) => {
+	  if (dragCtx && dragCtx.active) return;
+	  
       // appui long sur une ligne = déplacer (magasins + articles)
       const rowEl = e.target.closest(".store-row, .item-row");
       if (!rowEl) return;
@@ -2832,7 +2755,7 @@
         cleanup();
         if (moved) return;
 
-        suppressClickUntil = Date.now() + 520;
+        suppressClickUntil = Date.now() + ((e.pointerType === "touch") ? 1200 : 520);
 
         startDrag({
           type: isStore ? "store" : "item",
