@@ -2515,24 +2515,17 @@
         placeholder,
         ghost,
         containerEl,
-        active: true,
-        lastX: startX,
-        lastY: startY,
-        autoRaf: null,
-        lastFrame: 0,
-		failSafeTimer: null,
-        onTouchMove: null,
-        onTouchEnd: null,
-        onTouchCancel: null
+		
+		active: true,
+		lastX: startX,
+		lastY: startY,
+		autoRaf: null,
+		lastFrame: 0,
+		onTouchMove: null,
+		onTouchEnd: null,
+		onTouchCancel: null
+		
       };
-
-		const armFailSafe = () => {
-		  if (!dragCtx || !dragCtx.active) return;
-		  if (dragCtx.failSafeTimer) clearTimeout(dragCtx.failSafeTimer);
-		  dragCtx.failSafeTimer = setTimeout(() => {
-			if (dragCtx && dragCtx.active) finishDrag(true, { reason: "drag-timeout" });
-		  }, 2600);
-		};
 
       document.body.style.userSelect = "none";
       document.body.style.cursor = "grabbing";
@@ -2555,7 +2548,6 @@
           if (!t) return;
 
           if (ev.cancelable) ev.preventDefault();
-		  armFailSafe();
           updateDragAt(t.clientX, t.clientY);
         };
 
@@ -2618,11 +2610,6 @@
       if (dragCtx.autoRaf) {
         cancelAnimationFrame(dragCtx.autoRaf);
         dragCtx.autoRaf = null;
-      }
-
-      if (dragCtx.failSafeTimer) {
-        clearTimeout(dragCtx.failSafeTimer);
-        dragCtx.failSafeTimer = null;
       }
 
       // déverrouillage scroll
