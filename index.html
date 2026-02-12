@@ -1664,11 +1664,15 @@
        Rendu
     ---------------------------- */
 
-    function render() {
-      if (ui.screen === "settings") {
-        renderSettings();
-        return;
-      }
+	function render() {
+	  if (dragCtx && dragCtx.active) {
+		finishDrag(true, { skipRender: true, reason: "render-guard" });
+	  }
+
+	  if (ui.screen === "settings") {
+		renderSettings();
+		return;
+	  }
 
       if (ui.screen === "store") {
         const store = getStore(ui.storeId);
@@ -2478,10 +2482,19 @@
         lastY: startY,
         autoRaf: null,
         lastFrame: 0,
+		failSafeTimer: null,
         onTouchMove: null,
         onTouchEnd: null,
         onTouchCancel: null
       };
+
+		const armFailSafe = () => {
+		  if (!dragCtx || !dragCtx.active) return;
+		  if (dragCtx.failSafeTimer) clearTimeout(dragCtx.failSafeTimer);
+		  dragCtx.failSafeTimer = setTimeout(() => {
+			if (dragCtx && dragCtx.active) finishDrag(true, { reason: "drag-timeout" });
+		  }, 2600);
+		};
 
       document.body.style.userSelect = "none";
       document.body.style.cursor = "grabbing";
@@ -2504,17 +2517,22 @@
           if (!t) return;
 
           if (ev.cancelable) ev.preventDefault();
+		  armFailSafe();
           updateDragAt(t.clientX, t.clientY);
         };
 
         dragCtx.onTouchEnd = (ev) => {
           if (!dragCtx || !dragCtx.active) return;
 
-          const ended = (myId == null)
+          const endedById = (myId == null)
             ? true
             : findTouch(ev.changedTouches, myId);
 
-          if (!ended) return;
+          const stillPresent = (myId == null)
+            ? false
+            : findTouch(ev.touches, myId);
+
+          if (!endedById && stillPresent) return;
 
           finishDrag(false);
         };
@@ -2522,11 +2540,15 @@
         dragCtx.onTouchCancel = (ev) => {
           if (!dragCtx || !dragCtx.active) return;
 
-          const cancelled = (myId == null)
+          const cancelledById = (myId == null)
             ? true
             : findTouch(ev.changedTouches, myId);
 
-          if (!cancelled) return;
+          const stillPresent = (myId == null)
+            ? false
+            : findTouch(ev.touches, myId);
+
+          if (!cancelledById && stillPresent) return;
 
           finishDrag(true);
         };
@@ -2535,7 +2557,8 @@
         window.addEventListener("touchend", dragCtx.onTouchEnd, { passive: true, capture: true });
         window.addEventListener("touchcancel", dragCtx.onTouchCancel, { passive: true, capture: true });
       }
-
+	  
+	  armFailSafe();
       updateDragAt(startX, startY);
       startAutoScroll();
     }
@@ -2547,14 +2570,21 @@
       dragCtx.ghost.style.transform = `translate(${left}px, ${top}px)`;
     }
 
-    function finishDrag(cancel=false) {
-      if (!dragCtx) return;
+	function finishDrag(cancel=false, opts={}) {
+	  if (!dragCtx) return;
+
+	  const { skipRender = false } = opts;
 
       const { rowEl, placeholder, containerEl, ghost, type } = dragCtx;
 
       if (dragCtx.autoRaf) {
         cancelAnimationFrame(dragCtx.autoRaf);
         dragCtx.autoRaf = null;
+      }
+
+      if (dragCtx.failSafeTimer) {
+        clearTimeout(dragCtx.failSafeTimer);
+        dragCtx.failSafeTimer = null;
       }
 
       // déverrouillage scroll
@@ -2592,10 +2622,12 @@
           }
         }
         saveAppData();
-        render();
-        toast("Ordre mis à jour");
+        if (!skipRender) {
+          render();
+          toast("Ordre mis à jour");
+        }
       } else {
-        render();
+        if (!skipRender) render();
       }
 
       dragCtx = null;
@@ -2618,9 +2650,27 @@
     document.addEventListener("pointerup", (e) => handlePointerUp(e), { passive: true });
 
     document.addEventListener("pointercancel", (e) => {
-      // iOS envoie souvent pointercancel quand il croit qu’on scrolle : on ignore pendant un drag tactile
-      if (dragCtx && dragCtx.active && dragCtx.pointerType === "touch") return;
-      finishDrag(true);
+      if (dragCtx && dragCtx.active) {
+        if (e.pointerId === dragCtx.pointerId || dragCtx.pointerType === "touch") {
+          finishDrag(true, { reason: "pointercancel" });
+          return;
+        }
+      }
+      finishDrag(true, { reason: "pointercancel-global" });
+    }, { passive: true });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") {
+        finishDrag(true, { reason: "visibilitychange" });
+      }
+    }, { passive: true });
+
+    window.addEventListener("pagehide", () => {
+      finishDrag(true, { reason: "pagehide" });
+    }, { passive: true });
+
+    window.addEventListener("blur", () => {
+      finishDrag(true, { reason: "window-blur" });
     }, { passive: true });
 	
     // TACTILE (iPhone) : appui long en touchstart (1 doigt) = drag
