@@ -445,11 +445,13 @@
     }
     .handle:active { cursor: grabbing; }
 
-    /* store rows */
-    .store-row {
-      grid-template-columns: 1fr auto;
-      padding: 10px;
-    }
+	/* store rows */
+	.store-row {
+	  grid-template-columns: 1fr auto;
+	  padding: 10px;
+	  transition: transform 140ms ease;
+	}
+	
     .store-row .btn.icon {
       width: 40px; height: 40px;
       border-radius: 14px;
@@ -929,9 +931,10 @@
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
     }
-    .placeholder {
-      opacity: .35;
-    }
+	.placeholder {
+	  opacity: .35;
+	  transition: opacity 120ms ease;
+	}
 	
     html.drag-lock, body.drag-lock {
       overscroll-behavior: none;
@@ -2383,6 +2386,39 @@
     };
     document.addEventListener("touchmove", preventScrollWhileDragging, { passive: false, capture: true });
 
+	function animateReflow(containerEl, rowSelector, mutateLayout) {
+	  if (!containerEl) return mutateLayout();
+
+	  const rows = Array.from(containerEl.querySelectorAll(rowSelector));
+	  const before = new Map();
+	  rows.forEach((el) => before.set(el, el.getBoundingClientRect().top));
+
+	  mutateLayout();
+
+	  const afterRows = Array.from(containerEl.querySelectorAll(rowSelector));
+	  afterRows.forEach((el) => {
+		const firstTop = before.get(el);
+		if (firstTop == null) return;
+
+		const lastTop = el.getBoundingClientRect().top;
+		const dy = firstTop - lastTop;
+		if (Math.abs(dy) < 0.5) return;
+
+		el.style.transition = "none";
+		el.style.transform = `translateY(${dy}px)`;
+		void el.offsetHeight;
+		el.style.transition = "transform 150ms cubic-bezier(.2,.8,.2,1)";
+		el.style.transform = "translateY(0)";
+
+		const cleanup = () => {
+		  el.style.transition = "";
+		  el.style.transform = "";
+		  el.removeEventListener("transitionend", cleanup);
+		};
+		el.addEventListener("transitionend", cleanup);
+	  });
+	}
+
     function updateDragAt(x, y) {
       if (!dragCtx || !dragCtx.active) return;
 
@@ -2398,18 +2434,20 @@
       const overRow = elUnder.closest(rowSelector);
       if (!overRow || overRow === dragCtx.placeholder) return;
 
-      const overRect = overRow.getBoundingClientRect();
-      const before = y < (overRect.top + overRect.height / 2);
+		const overRect = overRow.getBoundingClientRect();
+		const before = y < (overRect.top + overRect.height / 2);
+		const targetNode = before ? overRow : overRow.nextSibling;
 
-      if (before) {
-        dragCtx.containerEl.insertBefore(dragCtx.placeholder, overRow);
-      } else {
-        dragCtx.containerEl.insertBefore(dragCtx.placeholder, overRow.nextSibling);
-      }
+		if (targetNode === dragCtx.placeholder || dragCtx.placeholder.nextSibling === targetNode) return;
+
+		animateReflow(dragCtx.containerEl, rowSelector, () => {
+		  dragCtx.containerEl.insertBefore(dragCtx.placeholder, targetNode);
+		});
     }
 
     function startAutoScroll() {
       if (!dragCtx) return;
+	  
       if (dragCtx.autoRaf) cancelAnimationFrame(dragCtx.autoRaf);
 
       dragCtx.lastFrame = performance.now();
