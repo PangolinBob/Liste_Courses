@@ -2496,6 +2496,12 @@
       ghost.style.width = rect.width + "px";
       ghost.style.height = rect.height + "px";
       ghost.innerHTML = `<div class="ghostInner">${rowEl.innerHTML}</div>`;
+
+      // Position initiale IMMEDIATE: évite le flash en haut de page sur iPhone
+      const rowPageLeft = window.scrollX + rect.left;
+      const rowPageTop = window.scrollY + rect.top;
+      ghost.style.transform = `translate(${rowPageLeft}px, ${rowPageTop}px)`;	  
+	  
       document.body.appendChild(ghost);
 
       containerEl.insertBefore(placeholder, rowEl);
@@ -2589,6 +2595,8 @@
       }
 	  
 	  armFailSafe();
+      // Recalage immédiat avec le point du doigt avant le 1er frame visible
+      moveGhost(startX, startY);
       updateDragAt(startX, startY);
       startAutoScroll();
     }
