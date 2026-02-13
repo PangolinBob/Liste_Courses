@@ -915,7 +915,7 @@
 
     /* draggable ghost */
     .ghost {
-      position: fixed;
+      position: absolute;
       left: 0;
       top: 0;
       z-index: 80;
@@ -2509,8 +2509,8 @@
         touchId: (typeof touchId === "number") ? touchId : null,
         startX,
         startY,
-        offsetX: startX - rect.left,
-        offsetY: startY - rect.top,
+        offsetPageX: (window.scrollX + startX) - (window.scrollX + rect.left),
+        offsetPageY: (window.scrollY + startY) - (window.scrollY + rect.top),
         rowEl,
         placeholder,
         ghost,
@@ -2593,12 +2593,15 @@
       startAutoScroll();
     }
 
-    function moveGhost(x, y) {
-      if (!dragCtx) return;
-      const left = x - dragCtx.offsetX;
-      const top  = y - dragCtx.offsetY;
-      dragCtx.ghost.style.transform = `translate(${left}px, ${top}px)`;
-    }
+	function moveGhost(x, y) {
+	  if (!dragCtx) return;
+	  const pageX = window.scrollX + x;
+	  const pageY = window.scrollY + y;
+	  const left = pageX - dragCtx.offsetPageX;
+	  const top  = pageY - dragCtx.offsetPageY;
+	  dragCtx.ghost.style.transform = `translate(${left}px, ${top}px)`;
+	}
+
 
 	function finishDrag(cancel=false, opts={}) {
 	  if (!dragCtx) return;
