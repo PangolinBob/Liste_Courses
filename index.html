@@ -1821,7 +1821,7 @@
 
         <div class="meta-row">
           <div class="pill">Reste : <strong>${rest}</strong></div>
-          <div class="pill">Filtre : <strong>${filterOn ? "ON" : "OFF"}</strong></div>
+          <button class="pill" data-action="toggle-filter-pill" aria-label="Basculer le filtre" style="cursor:pointer;">Filtre : <strong>${filterOn ? "ON" : "OFF"}</strong></button>
         </div>
 
         <div class="searchbar ${searchOpen ? "open" : ""}">
@@ -2103,6 +2103,13 @@
         return;
       }
 
+      if (action === "toggle-filter-pill") {
+        ui.filterOn = !ui.filterOn;
+        render();
+        toast(ui.filterOn ? "Filtre ON" : "Filtre OFF");
+        return;
+      }
+
       if (action === "store-menu") {
         const store = getStore(ui.storeId);
         if (!store) return;
@@ -2295,10 +2302,29 @@
         render();
         return;
       }
-      row.classList.add("removing");
-      setTimeout(() => {
+
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        row.removeEventListener("transitionend", onEnd);
         render();
-      }, 220);
+      };
+
+      const onEnd = (ev) => {
+        if (ev && ev.target !== row) return;
+        finish();
+      };
+
+      row.addEventListener("transitionend", onEnd);
+      row.classList.add("removing");
+
+      // Filet de sécurité si transitionend ne remonte pas sur un device.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!done && !row.isConnected) finish();
+        });
+      });
     }
 
     function cssEscape(s) {
