@@ -148,3 +148,20 @@ Exécution avec Playwright disponible : `node tests/reorder.cjs`.
 `PLAYWRIGHT_MODULE` peut désigner une installation existante ; `BROWSER_CHANNEL` choisit le navigateur.
 Ils vérifient le déplacement, la sauvegarde, l’annulation et le retour au défilement normal.
 La validation finale du comportement de Safari reste à faire sur l’iPhone.
+
+## Réactivité des actions
+
+La sélection et les quantités mettent à jour la carte concernée et le compteur, sans reconstruire la liste ni recréer SortableJS.
+La recherche conserve son champ, son curseur et réutilise les cartes du magasin courant.
+Le cache de cartes est vidé lors d’un changement d’écran ou d’un rendu complet.
+Les sauvegardes restent synchrones et la clé `lc_appData_v1` ne change pas.
+Les actions de menus n’attendent plus la fin de leur animation de fermeture.
+
+Vérifications :
+- `node tests/responsiveness.cjs --ref=9bb4df7` mesure la version de référence.
+- `node tests/responsiveness.cjs --verify` mesure et vérifie la version courante.
+- `node tests/interactions.cjs` contrôle le filtre, les mouvements réduits, la recherche et les formulaires.
+- `node tests/interactions.cjs --baseline` reproduit le compteur bloqué sans animation sur la version de référence.
+
+Le banc utilise Chromium, un CPU ralenti six fois et des profils isolés de 28 et 300 articles.
+Ses temps de traitement sont comparables sur le même PC ; ils ne constituent pas une mesure du GPU ni de Safari sur l’iPhone.

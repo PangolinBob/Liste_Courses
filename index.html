@@ -320,6 +320,9 @@
 		  align-items: center;
 		}
 
+    /* Touchers rapides : défilement et zoom à deux doigts conservés. */
+    button, [data-action], #splash { touch-action: manipulation; }
+
     /* buttons */
     .btn {
       -webkit-tap-highlight-color: transparent;
@@ -613,7 +616,7 @@
       border-radius: var(--radius-md);
       border: 1px solid var(--border);
       background: rgba(255,255,255,0);
-      transition: background 160ms ease, border-color 160ms ease, transform 140ms ease, opacity 160ms ease, max-height 200ms ease, margin 200ms ease, padding 200ms ease;
+      transition: transform 140ms ease, opacity 100ms ease, max-height 100ms ease, margin 100ms ease, padding 100ms ease;
       overflow: hidden;
       max-height: 86px;
     }
@@ -640,6 +643,7 @@
     }
 
     .item-row.removing {
+      pointer-events: none;
       opacity: 0;
       transform: translateX(14px) scale(.985);
       max-height: 0;
@@ -1402,6 +1406,7 @@ SOFTWARE.
 
     let undoStack = []; // snapshots en mémoire
     let suppressClickUntil = 0;
+    const renderedItemNodes = new Map();
 
     const ui = {
       screen: "home",
@@ -1611,12 +1616,13 @@ SOFTWARE.
         modalRoot.appendChild(overlay);
         requestAnimationFrame(() => overlay.classList.add("open"));
 
+        let closed = false;
         const close = (val) => {
+          if (closed) return;
+          closed = true;
           overlay.classList.remove("open");
-          setTimeout(() => {
-            modalRoot.innerHTML = "";
-            resolve(val);
-          }, 180);
+          resolve(val);
+          setTimeout(() => overlay.remove(), 180);
         };
 
         overlay.addEventListener("click", (e) => {
@@ -1656,14 +1662,15 @@ SOFTWARE.
         requestAnimationFrame(() => overlay.classList.add("open"));
 
         const input = overlay.querySelector('input');
-        setTimeout(() => input.focus(), 80);
+        input.focus({ preventScroll: true });
 
+        let closed = false;
         const close = (val) => {
+          if (closed) return;
+          closed = true;
           overlay.classList.remove("open");
-          setTimeout(() => {
-            modalRoot.innerHTML = "";
-            resolve(val);
-          }, 180);
+          resolve(val);
+          setTimeout(() => overlay.remove(), 180);
         };
 
         overlay.addEventListener("click", (e) => {
@@ -1718,12 +1725,13 @@ SOFTWARE.
 
         requestAnimationFrame(() => overlay.classList.add("open"));
 
+        let closed = false;
         const close = (val) => {
+          if (closed) return;
+          closed = true;
           overlay.classList.remove("open");
-          setTimeout(() => {
-            modalRoot.innerHTML = "";
-            resolve(val);
-          }, 180);
+          resolve(val);
+          setTimeout(() => overlay.remove(), 180);
         };
 
         overlay.addEventListener("click", (e) => {
@@ -1752,6 +1760,7 @@ SOFTWARE.
 
 	function render() {
       disposeReordering();
+      renderedItemNodes.clear();
 
 	  if (ui.screen === "settings") {
 		renderSettings();
@@ -1768,6 +1777,7 @@ SOFTWARE.
           return render();
         }
         renderStore(store);
+        appEl.querySelectorAll(".item-row").forEach(row => renderedItemNodes.set(row.dataset.itemRow, row));
         setupReordering();
         return;
       }
@@ -1861,23 +1871,12 @@ SOFTWARE.
       `;
     }
 
-    function renderStore(store) {
-      const rest = store.items.filter(it => it.planned).length;
-
-      const filterOn = ui.filterOn;
-      const searchOpen = ui.searchOpen;
+    function visibleStoreItems(store) {
       const q = normalizeKey(ui.searchQuery);
+      return store.items.filter(item => (!ui.filterOn || item.planned) && (!q || normalizeKey(item.name).includes(q)));
+    }
 
-      let items = store.items.slice();
-
-      if (filterOn) {
-        items = items.filter(it => it.planned);
-      }
-      if (q) {
-        items = items.filter(it => normalizeKey(it.name).includes(q));
-      }
-
-		const itemsHtml = items.map(it => {
+    function renderStoreItem(it) {
 		  const plannedClass = it.planned ? "planned" : "";
 		  return `
 			<div class="item-row card ${plannedClass}" data-item-row="${it.id}" data-action="toggle-planned" data-id="${it.id}">
@@ -1892,7 +1891,20 @@ SOFTWARE.
 			  <button class="btn icon flat" data-action="item-gear" data-id="${it.id}" aria-label="Options article">${icon("gear")}</button>
 			</div>
 		  `;
-		}).join("");
+    }
+
+    function renderStoreEmpty() {
+      return `<div class="empty">${ui.filterOn || normalizeKey(ui.searchQuery) ? "Rien ici (avec le filtre/recherche)." : "Aucun article. Ajoute-en un avec le +."}</div>`;
+    }
+
+    function renderStoreItems(store) {
+      return visibleStoreItems(store).map(renderStoreItem).join("") || renderStoreEmpty();
+    }
+
+    function renderStore(store) {
+      const rest = store.items.filter(it => it.planned).length;
+      const filterOn = ui.filterOn;
+      const searchOpen = ui.searchOpen;
 
       appEl.innerHTML = `
         <div class="store-toolbar">
@@ -1904,7 +1916,7 @@ SOFTWARE.
         </div>
 
         <div class="meta-row">
-          <div class="pill">Reste : <strong>${rest}</strong></div>
+          <div class="pill">Reste : <strong data-remaining-count>${rest}</strong></div>
           <button class="btn icon primary" data-action="add-item" aria-label="Ajouter un article" title="Ajouter un article">${icon("plus")}</button>
           <button class="pill" data-action="toggle-filter-pill" aria-label="Basculer le filtre" style="cursor:pointer;">Filtre : <strong>${filterOn ? "ON" : "OFF"}</strong></button>
         </div>
@@ -1920,7 +1932,7 @@ SOFTWARE.
         </div>
 
         <div class="list">
-          ${itemsHtml || `<div class="empty">${filterOn || q ? "Rien ici (avec le filtre/recherche)." : "Aucun article. Ajoute-en un avec le +."}</div>`}
+          ${renderStoreItems(store)}
         </div>
 
       `;
@@ -1930,6 +1942,62 @@ SOFTWARE.
         if (input) setTimeout(() => input.focus(), 40);
       }
     }
+    function updateRemainingCount(store) {
+      const counter = appEl.querySelector("[data-remaining-count]");
+      if (!counter) return;
+      const value = String(store.items.filter(it => it.planned).length);
+      if (counter.textContent !== value) counter.textContent = value;
+    }
+
+    function refreshStoreList() {
+      const store = getStore(ui.storeId);
+      const list = appEl.querySelector(".list");
+      if (ui.screen !== "store" || !store || !list) return render();
+      disposeReordering();
+      const nodes = visibleStoreItems(store).map(item => {
+        let row = renderedItemNodes.get(item.id);
+        if (!row) {
+          const template = document.createElement("template");
+          template.innerHTML = renderStoreItem(item);
+          row = template.content.firstElementChild;
+          renderedItemNodes.set(item.id, row);
+        }
+        return row;
+      });
+      const wanted = new Set(nodes);
+      Array.from(list.children).forEach(row => { if (!wanted.has(row)) row.remove(); });
+      let cursor = list.firstElementChild;
+      for (const row of nodes) {
+        if (row !== cursor) list.insertBefore(row, cursor);
+        cursor = row.nextElementSibling;
+      }
+      if (!nodes.length) list.innerHTML = renderStoreEmpty();
+      updateRemainingCount(store);
+      setupReordering();
+    }
+
+    function updateItemInPlace(store, item) {
+      const row = appEl.querySelector(`[data-item-row="${cssEscape(item.id)}"]`);
+      if (!row) return refreshStoreList();
+      row.classList.toggle("planned", item.planned);
+      const quantity = row.querySelector(".qty");
+      if (quantity.textContent !== String(item.qty)) quantity.textContent = String(item.qty);
+      const decrease = row.querySelector('[data-action="qty-dec"]');
+      decrease.disabled = item.qty <= 1;
+      updateRemainingCount(store);
+    }
+
+    function updateSearchView() {
+      const bar = appEl.querySelector(".searchbar");
+      const input = appEl.querySelector("#searchInput");
+      if (!bar || !input) return render();
+      bar.classList.toggle("open", ui.searchOpen);
+      input.value = ui.searchQuery;
+      refreshStoreList();
+      if (ui.searchOpen) input.focus({ preventScroll: true });
+      else input.blur();
+    }
+
 
     function getStore(storeId) {
       return appData.stores.find(s => s.id === storeId) || null;
@@ -2103,13 +2171,10 @@ SOFTWARE.
 
         pushUndo();
         it.planned = !it.planned;
+        updateItemInPlace(store, it);
         saveAppData();
 
-        if (ui.filterOn && !it.planned) {
-          animateRemoval(id);
-        } else {
-          render();
-        }
+        if (ui.filterOn && !it.planned) animateRemoval(id);
         return;
       }
 
@@ -2122,8 +2187,8 @@ SOFTWARE.
         pushUndo();
         if (action === "qty-inc") it.qty = Math.min(99, (it.qty || 1) + 1);
         if (action === "qty-dec") it.qty = Math.max(1, (it.qty || 1) - 1);
+        updateItemInPlace(store, it);
         saveAppData();
-        render();
         return;
       }
 
@@ -2177,13 +2242,13 @@ SOFTWARE.
       if (action === "toggle-search") {
         ui.searchOpen = !ui.searchOpen;
         if (!ui.searchOpen) ui.searchQuery = "";
-        render();
+        updateSearchView();
         return;
       }
 
       if (action === "clear-search") {
         ui.searchQuery = "";
-        render();
+        updateSearchView();
         return;
       }
 
@@ -2271,7 +2336,7 @@ SOFTWARE.
     document.addEventListener("input", (e) => {
       if (e.target && e.target.id === "searchInput") {
         ui.searchQuery = e.target.value || "";
-        render();
+        refreshStoreList();
       }
     });
 
@@ -2381,34 +2446,31 @@ SOFTWARE.
        Animation disparition (filtre actif)
     ---------------------------- */
     function animateRemoval(itemId) {
-      const row = document.querySelector(`[data-item-row="${cssEscape(itemId)}"]`);
-      if (!row) {
-        render();
-        return;
-      }
-
-      let done = false;
+      const row = appEl.querySelector(`[data-item-row="${cssEscape(itemId)}"]`);
+      if (!row) return refreshStoreList();
+      const container = row.parentElement;
+      let finished = false;
+      let fallback = 0;
       const finish = () => {
-        if (done) return;
-        done = true;
+        if (finished) return;
+        finished = true;
+        clearTimeout(fallback);
         row.removeEventListener("transitionend", onEnd);
-        render();
+        if (!row.isConnected) return;
+        if (reorderSession || Sortable.dragged === row) return cancelReordering();
+        row.remove();
+        const store = getStore(ui.storeId);
+        if (!container.querySelector(".item-row") && store) container.innerHTML = renderStoreItems(store);
+        if (listSorter) listSorter.option("disabled", container.querySelectorAll(".item-row:not(.removing)").length < 2);
       };
-
-      const onEnd = (ev) => {
-        if (ev && ev.target !== row) return;
-        finish();
+      const onEnd = event => {
+        if (event.target === row && event.propertyName === "max-height") finish();
       };
-
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return finish();
       row.addEventListener("transitionend", onEnd);
       row.classList.add("removing");
-
-      // Filet de sécurité si transitionend ne remonte pas sur un device.
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (!done && !row.isConnected) finish();
-        });
-      });
+      if (listSorter) listSorter.option("disabled", container.querySelectorAll(".item-row:not(.removing)").length < 2);
+      fallback = setTimeout(finish, 140);
     }
 
     function cssEscape(s) {
@@ -2552,7 +2614,7 @@ SOFTWARE.
         preventOnFilter: false,
         filter(event) {
           return Boolean(event.touches?.length > 1 || event.target.closest(
-            '.stepper, [data-action="store-gear"], [data-action="item-gear"], input, textarea'
+            '.removing, .stepper, [data-action="store-gear"], [data-action="item-gear"], input, textarea'
           ));
         },
         onChoose(event) {
