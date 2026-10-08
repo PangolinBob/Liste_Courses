@@ -529,6 +529,19 @@
       margin: 0;
     }
     .store-toolbar .meta-row > :last-child { justify-self: end; }
+    .store-toolbar .meta-row > .pill,
+    .store-toolbar .meta-row > [data-action="add-item"] { height: 30px; }
+    .store-toolbar .meta-row > [data-action="add-item"] {
+      position: relative;
+      overflow: visible;
+      border-radius: 999px;
+    }
+    .store-toolbar .meta-row > [data-action="add-item"] .icon { width: 16px; height: 16px; }
+    .store-toolbar .meta-row > [data-action="add-item"]::before {
+      content: "";
+      position: absolute;
+      inset: -7px 0;
+    }
     .store-toolbar .searchbar { margin-bottom: 0; }
     .store-toolbar .store-header { position: relative; }
     .store-toolbar .store-title {
