@@ -135,3 +135,16 @@ http://127.0.0.1:8080
 - tests unitaires sur logique métier (undo, import/export, filtres),
 - gestion multi-profils ou multi-utilisateurs,
 - sync cloud optionnelle.
+
+## Déplacement tactile et vérification
+
+Le déplacement utilise SortableJS 1.15.7, intégré dans `index.html` avec sa licence MIT.
+La bibliothèque est figée et ne nécessite aucun téléchargement pendant l’utilisation de l’app.
+Un appui de 320 ms sélectionne la carte ; le doigt peut ensuite la déplacer et la déposer.
+Le défilement ordinaire reste disponible avant cet appui long.
+
+Les tests `tests/reorder.cjs` utilisent Playwright et des gestes tactiles Chromium, dans un profil isolé.
+Exécution avec Playwright disponible : `node tests/reorder.cjs`.
+`PLAYWRIGHT_MODULE` peut désigner une installation existante ; `BROWSER_CHANNEL` choisit le navigateur.
+Ils vérifient le déplacement, la sauvegarde, l’annulation et le retour au défilement normal.
+La validation finale du comportement de Safari reste à faire sur l’iPhone.
