@@ -345,6 +345,9 @@
     .btn:focus-visible { outline: none; box-shadow: var(--focus); }
 
     .btn.icon {
+      display: inline-flex;
+      flex-shrink: 0;
+      line-height: 1;
       width: 44px;
       height: 44px;
       padding: 0;
@@ -389,17 +392,13 @@
     .icon {
       width: 18px;
       height: 18px;
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
       color: var(--icon);
     }
     .icon svg { width: 100%; height: 100%; display:block; }
-	button[data-action="toggle-theme"] .icon svg {
-	  transform: translateY(2px);
-	}
-	button[data-action="store-gear"] .icon svg,
-	button[data-action="item-gear"] .icon svg {
-	  transform: translateY(1.5px);
-	}	
 
     /* cards & lists */
     .card {
@@ -512,6 +511,36 @@
 	  background: rgba(34,197,94,.22);
 	  border-color: rgba(34,197,94,.40);
 	}
+
+    /* Commandes accessibles pendant le défilement, y compris la recherche. */
+    .store-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      margin: calc(-1 * (var(--pad) + var(--top-safe))) calc(-1 * var(--pad)) var(--gap);
+      padding: calc(var(--pad) + var(--top-safe)) var(--pad) var(--pad-sm);
+      background: linear-gradient(135deg, var(--bg-c), var(--bg-a) 75%);
+      border-bottom: 1px solid var(--border);
+    }
+    .store-toolbar .meta-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr);
+      gap: 12px;
+      margin: 0;
+    }
+    .store-toolbar .meta-row > :last-child { justify-self: end; }
+    .store-toolbar .searchbar { margin-bottom: 0; }
+    .store-toolbar .store-header { position: relative; }
+    .store-toolbar .store-title {
+      position: absolute;
+      left: 98px;
+      right: 98px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .store-toolbar [data-action="toggle-search"] { grid-column: 3; }
+    .store-toolbar [data-action="store-menu"] { grid-column: 4; }
+    .store-header .store-title { min-width: 0; }
 
     /* header for store screen */
     .store-header {
@@ -664,15 +693,21 @@
       -webkit-backdrop-filter: blur(10px);
     }
     .stepper button {
+      appearance: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      min-width: 0;
       border: none;
       background: transparent;
       color: var(--icon);
-      height: 44px;
+      height: 100%;
       cursor: pointer;
-      font-size: 18px;
-      font-weight: 900;
+      line-height: 1;
       -webkit-tap-highlight-color: transparent;
     }
+    .stepper button .icon { width: 16px; height: 16px; }
     .stepper button:active {
       background: rgba(255,255,255,.08);
     }
@@ -681,6 +716,7 @@
       cursor: default;
     }
     .stepper .qty {
+      line-height: 1;
       text-align: center;
       font-weight: 500;
       font-size: 16px;
@@ -1459,6 +1495,10 @@
           <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" ${common}></circle><path d="M12 2v2" ${common}></path><path d="M12 20v2" ${common}></path><path d="M4.93 4.93l1.41 1.41" ${common}></path><path d="M17.66 17.66l1.41 1.41" ${common}></path><path d="M2 12h2" ${common}></path><path d="M20 12h2" ${common}></path><path d="M4.93 19.07l1.41-1.41" ${common}></path><path d="M17.66 6.34l1.41-1.41" ${common}></path></svg></span>`;
         case "moon": return `
           <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 12.7A8 8 0 0 1 11.3 3a6.9 6.9 0 1 0 9.7 9.7Z" ${common}></path></svg></span>`;
+        case "minus": return `
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14" ${common}></path></svg></span>`;
+        case "close": return `
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" ${common}></path></svg></span>`;
         case "plus": return `
           <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14" ${common}></path><path d="M5 12h14" ${common}></path></svg></span>`;
         case "gear": return `
@@ -1813,9 +1853,9 @@
 		  return `
 			<div class="item-row card ${plannedClass}" data-item-row="${it.id}" data-action="toggle-planned" data-id="${it.id}">
 			  <div class="stepper" aria-label="Quantité">
-				<button data-action="qty-dec" data-id="${it.id}" aria-label="Baisser la quantité" ${it.qty <= 1 ? "disabled" : ""}>-</button>
+				<button data-action="qty-dec" data-id="${it.id}" aria-label="Baisser la quantité" ${it.qty <= 1 ? "disabled" : ""}>${icon("minus")}</button>
 				<div class="qty" aria-label="Quantité">${it.qty}</div>
-				<button data-action="qty-inc" data-id="${it.id}" aria-label="Augmenter la quantité">+</button>
+				<button data-action="qty-inc" data-id="${it.id}" aria-label="Augmenter la quantité">${icon("plus")}</button>
 			  </div>
 
 			  <div class="item-name">${escapeHtml(it.name)}</div>
@@ -1826,6 +1866,7 @@
 		}).join("");
 
       appEl.innerHTML = `
+        <div class="store-toolbar">
         <div class="store-header">
           <button class="btn icon" data-action="back-home" aria-label="Retour">${icon("back")}</button>
           <div class="store-title" title="${escapeAttr(store.name)}">${escapeHtml(store.name)}</div>
@@ -1835,6 +1876,7 @@
 
         <div class="meta-row">
           <div class="pill">Reste : <strong>${rest}</strong></div>
+          <button class="btn icon primary" data-action="add-item" aria-label="Ajouter un article" title="Ajouter un article">${icon("plus")}</button>
           <button class="pill" data-action="toggle-filter-pill" aria-label="Basculer le filtre" style="cursor:pointer;">Filtre : <strong>${filterOn ? "ON" : "OFF"}</strong></button>
         </div>
 
@@ -1842,17 +1884,16 @@
           <div class="field card">
             ${icon("search")}
             <input id="searchInput" type="text" placeholder="Rechercher un article" value="${escapeAttr(ui.searchQuery)}" />
-            <button class="btn icon flat clear" data-action="clear-search" aria-label="Effacer">✕</button>
+            <button class="btn icon flat clear" data-action="clear-search" aria-label="Effacer">${icon("close")}</button>
           </div>
+        </div>
+
         </div>
 
         <div class="list">
           ${itemsHtml || `<div class="empty">${filterOn || q ? "Rien ici (avec le filtre/recherche)." : "Aucun article. Ajoute-en un avec le +."}</div>`}
         </div>
 
-        <div class="footer">
-          <button class="btn primary" data-action="add-item">${icon("plus")} Ajouter un article</button>
-        </div>
       `;
 
       if (ui.searchOpen) {
