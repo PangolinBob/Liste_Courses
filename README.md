@@ -1,6 +1,6 @@
 # Liste_Courses
 
-Application web locale de **liste de courses** (mobile-first), en **fichier unique** (`index.html`) avec persistance locale.
+Application web locale de **liste de courses** (mobile-first), avec interface et logique intégrées dans `index.html`, ressources locales et persistance locale.
 
 ## Objectif
 
@@ -26,7 +26,10 @@ Gérer simplement tes courses par magasin, avec une interface tactile soignée :
 ```txt
 Liste_Courses/
 ├─ index.html         # app complète (UI + logique + data templates)
-└─ IconCourses.png    # icône app / splash / favicon
+├─ IconCourses.png    # icône app / splash / favicon
+├─ sw.js              # cache du programme et actualisation en arrière-plan
+├─ fonts/             # Syne locale (WOFF2) et licence OFL
+└─ tests/             # vérifications dans des profils de navigateur isolés
 ```
 
 ---
@@ -117,7 +120,7 @@ http://127.0.0.1:8080
 
 - optimisé mobile (iOS/Safari),
 - fonctionne desktop moderne,
-- fonctionnement offline possible après chargement initial (pas d’API backend).
+- réouverture hors connexion après installation du cache lors d’une première ouverture en HTTPS (ou sur localhost).
 
 ---
 
@@ -165,3 +168,42 @@ Vérifications :
 
 Le banc utilise Chromium, un CPU ralenti six fois et des profils isolés de 28 et 300 articles.
 Ses temps de traitement sont comparables sur le même PC ; ils ne constituent pas une mesure du GPU ni de Safari sur l’iPhone.
+
+## Ouverture rapide et cache local
+
+L’accueil est disponible dès son rendu, sans attendre `window.load`, les images, les polices
+ou une temporisation de 320 ms. Le toucher de l’écran au caddie révèle cet accueil déjà préparé.
+Son animation et le fonctionnement des listes restent identiques.
+
+Syne est servie depuis `fonts/`, avec `font-display: swap` : aucun appel à Google Fonts
+au démarrage. Les fichiers WOFF2 officiels de Syne v24 conservent les poids 500/600 et
+les jeux latin, latin étendu et grec ; la licence est dans `fonts/OFL.txt`.
+Source : https://fonts.googleapis.com/css2?family=Syne:wght@500;600&display=swap.
+
+Le service worker s’installe après le premier affichage, sans bloquer l’application.
+Il précharge le document, l’icône et les trois polices. Les ouvertures suivantes servent
+le document en cache immédiatement, puis vérifient le serveur en arrière-plan ; une
+nouvelle version du document devient disponible à l’ouverture suivante, sans rechargement
+forcé d’une liste ouverte. Les chemins `/Liste_Courses/` et `/Liste_Courses/index.html`
+utilisent la même copie, y compris avec un paramètre de requête.
+
+Les réponses HTML en erreur ou redirigées ne remplacent pas une copie valide.
+Une nouvelle installation du service worker échoue si une ressource manque ; l’ancienne
+version reste alors active. Le nettoyage ne concerne que les caches préfixés par
+`liste-courses:` et le périmètre exact de l’application : les autres apps de la même
+origine sont préservées. Ni `lc_appData_v1` ni son schéma ne changent.
+
+Changer `shell-v1` dans `sw.js` si les ressources précachées ou leur liste changent.
+L’activation immédiate est adaptée au programme/CSS intégrés dans le document et aux
+ressources statiques actuelles. La revoir si le programme est séparé en fichiers à
+charger ensemble. Référence : https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Caching.
+
+Vérifications :
+- `node tests/startup.cjs --ref=22f2dde` reproduit les attentes de la version de référence.
+- `node tests/startup.cjs` vérifie l’affichage avec police ou icône retardée de 2,5 s,
+  l’absence de dépendance externe, la réouverture sans réseau, les données conservées,
+  les actualisations et les échecs serveur/installation.
+
+Le banc tourne sur Chromium PC, dans des profils isolés. Il ne mesure pas le lancement
+propre à iOS avant l’affichage de la page ; le gain sur l’iPhone reste à confirmer.
+Le cache nécessite une première ouverture en ligne et peut être évincé par le navigateur.
