@@ -67,6 +67,9 @@ L’ajout, la nouvelle course, la restauration et le réordonnancement restent d
 d’un magasin ; la vue globale reprend cet ordre et conserve ses commandes en haut
 pendant le défilement.
 
+La vue tous magasins et la conservation de l’ordre ont été validées sur l’iPhone
+13 mini le 30 octobre 2026.
+
 ## 4) Réorganisation (drag & drop)
 - Réordre des magasins (écran home).
 - Réordre des articles dans un magasin.
@@ -165,7 +168,7 @@ Les tests `tests/reorder.cjs` utilisent Playwright et des gestes tactiles Chromi
 Exécution avec Playwright disponible : `node tests/reorder.cjs`.
 `PLAYWRIGHT_MODULE` peut désigner une installation existante ; `BROWSER_CHANNEL` choisit le navigateur.
 Ils vérifient le déplacement, la sauvegarde, l’annulation et le retour au défilement normal.
-La validation finale du comportement de Safari reste à faire sur l’iPhone.
+Le déplacement tactile a été validé sur l’iPhone par Gaël.
 
 ## Réactivité des actions
 
@@ -223,5 +226,7 @@ Vérifications :
   les actualisations et les échecs serveur/installation.
 
 Le banc tourne sur Chromium PC, dans des profils isolés. Il ne mesure pas le lancement
-propre à iOS avant l’affichage de la page ; le gain sur l’iPhone reste à confirmer.
+propre à iOS avant l’affichage de la page.
+L’ouverture accélérée a été validée sur l’iPhone par Gaël le 26 octobre 2026 :
+« significativement plus rapide ».
 Le cache nécessite une première ouverture en ligne et peut être évincé par le navigateur.
