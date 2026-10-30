@@ -52,6 +52,21 @@ Dans chaque magasin :
 - Barre de recherche texte par nom d’article.
 - nettoyage rapide de recherche.
 
+Avec le filtre **ON**, le menu Actions propose **Tous les magasins** : une seule page
+des articles à acheter, regroupés par magasin dans l’ordre enregistré des magasins et
+des articles. Les magasins sans achat sont masqués. La recherche porte sur tous les
+groupes ; les quantités, le toucher pour retirer un achat et Undo modifient les articles
+de leur magasin d’origine.
+
+Le menu propose ensuite **Ce magasin uniquement** pour revenir au magasin de départ.
+Le bouton Retour et le passage du filtre à OFF y ramènent aussi. Réactiver le filtre
+seul conserve l’affichage d’un seul magasin. Le choix d’affichage reste dans Actions,
+sans accès supplémentaire à l’accueil.
+
+L’ajout, la nouvelle course, la restauration et le réordonnancement restent dans la vue
+d’un magasin ; la vue globale reprend cet ordre et conserve ses commandes en haut
+pendant le défilement.
+
 ## 4) Réorganisation (drag & drop)
 - Réordre des magasins (écran home).
 - Réordre des articles dans un magasin.
@@ -164,6 +179,9 @@ Vérifications :
 - `node tests/responsiveness.cjs --ref=9bb4df7` mesure la version de référence.
 - `node tests/responsiveness.cjs --verify` mesure et vérifie la version courante.
 - `node tests/interactions.cjs` contrôle le filtre, les mouvements réduits, la recherche et les formulaires.
+- `node tests/global-shopping.cjs` vérifie l’accès avec filtre ON, les groupes et leur ordre,
+  les actions dans le bon magasin, la recherche, Undo, les listes vides, la conservation
+  des données et le défilement tactile de la vue globale.
 - `node tests/interactions.cjs --baseline` reproduit le compteur bloqué sans animation sur la version de référence.
 
 Le banc utilise Chromium, un CPU ralenti six fois et des profils isolés de 28 et 300 articles.

@@ -579,6 +579,19 @@
     .store-toolbar [data-action="store-menu"] { grid-column: 4; }
     .store-header .store-title { min-width: 0; }
 
+    .store-toolbar.all-stores .meta-row { grid-template-columns: 1fr 1fr; }
+    .shopping-store-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 8px 2px 10px;
+      font-size: 18px;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+    .shopping-items { display: grid; gap: var(--gap); }
+
     /* header for store screen */
     .store-header {
       display: grid;
@@ -1433,6 +1446,7 @@ SOFTWARE.
       screen: "home",
       storeId: null,
       filterOn: false,   // masque pas prévu + acheté
+      allStores: false,
       searchOpen: false,
       searchQuery: ""
     };
@@ -1808,6 +1822,7 @@ SOFTWARE.
     }
 
     function renderHome() {
+      ui.allStores = false;
       ui.searchOpen = false;
       ui.searchQuery = "";
 
@@ -1897,6 +1912,29 @@ SOFTWARE.
       return store.items.filter(item => (!ui.filterOn || item.planned) && (!q || normalizeKey(item.name).includes(q)));
     }
 
+    function showingAllStores() {
+      return ui.screen === "store" && ui.filterOn && ui.allStores;
+    }
+
+    function renderShoppingEmpty() {
+      return `<div class="empty">${normalizeKey(ui.searchQuery) ? "Aucun article ne correspond à la recherche." : "Aucun article à acheter."}</div>`;
+    }
+
+    function renderShoppingGroup(store, items) {
+      const count = store.items.filter(item => item.planned).length;
+      return `<section data-store-section="${escapeAttr(store.id)}" data-store-id="${escapeAttr(store.id)}" aria-label="${escapeAttr(store.name)}">
+        <h2 class="shopping-store-title"><span>${escapeHtml(store.name)}</span><span class="store-badge" data-store-remaining>${count}</span></h2>
+        <div class="shopping-items">${items.map(renderStoreItem).join("")}</div>
+      </section>`;
+    }
+
+    function renderShoppingItems() {
+      return appData.stores.map(store => {
+        const items = visibleStoreItems(store);
+        return items.length ? renderShoppingGroup(store, items) : "";
+      }).join("") || renderShoppingEmpty();
+    }
+
     function renderStoreItem(it) {
 		  const plannedClass = it.planned ? "planned" : "";
 		  return `
@@ -1923,22 +1961,23 @@ SOFTWARE.
     }
 
     function renderStore(store) {
-      const rest = store.items.filter(it => it.planned).length;
+      const allStores = showingAllStores();
+      const rest = (allStores ? appData.stores : [store]).reduce((total, s) => total + s.items.filter(it => it.planned).length, 0);
       const filterOn = ui.filterOn;
       const searchOpen = ui.searchOpen;
 
       appEl.innerHTML = `
-        <div class="store-toolbar">
+        <div class="store-toolbar${allStores ? " all-stores" : ""}">
         <div class="store-header">
           <button class="btn icon" data-action="back-home" aria-label="Retour">${icon("back")}</button>
-          <div class="store-title" title="${escapeAttr(store.name)}">${escapeHtml(store.name)}</div>
+          <div class="store-title" title="${escapeAttr(allStores ? "Tous les magasins" : store.name)}">${escapeHtml(allStores ? "À acheter" : store.name)}</div>
           <button class="btn icon" data-action="toggle-search" aria-label="Rechercher">${icon("search")}</button>
           <button class="btn icon" data-action="store-menu" aria-label="Menu">${icon("more")}</button>
         </div>
 
         <div class="meta-row">
           <div class="pill">Reste : <strong data-remaining-count>${rest}</strong></div>
-          <button class="btn icon primary" data-action="add-item" aria-label="Ajouter un article" title="Ajouter un article">${icon("plus")}</button>
+          ${allStores ? "" : `<button class="btn icon primary" data-action="add-item" aria-label="Ajouter un article" title="Ajouter un article">${icon("plus")}</button>`}
           <button class="pill" data-action="toggle-filter-pill" aria-label="Basculer le filtre" style="cursor:pointer;">Filtre : <strong>${filterOn ? "ON" : "OFF"}</strong></button>
         </div>
 
@@ -1953,7 +1992,7 @@ SOFTWARE.
         </div>
 
         <div class="list">
-          ${renderStoreItems(store)}
+          ${allStores ? renderShoppingItems() : renderStoreItems(store)}
         </div>
 
       `;
@@ -1966,16 +2005,26 @@ SOFTWARE.
     function updateRemainingCount(store) {
       const counter = appEl.querySelector("[data-remaining-count]");
       if (!counter) return;
-      const value = String(store.items.filter(it => it.planned).length);
+      const value = String((showingAllStores() ? appData.stores : [store]).reduce((total, s) => total + s.items.filter(it => it.planned).length, 0));
       if (counter.textContent !== value) counter.textContent = value;
+      if (showingAllStores()) {
+        const group = Array.from(appEl.querySelectorAll("[data-store-section]")).find(section => section.dataset.storeSection === store.id);
+        if (group) group.querySelector("[data-store-remaining]").textContent = String(store.items.filter(it => it.planned).length);
+      }
     }
 
-    function refreshStoreList() {
-      const store = getStore(ui.storeId);
-      const list = appEl.querySelector(".list");
-      if (ui.screen !== "store" || !store || !list) return render();
-      disposeReordering();
-      const nodes = visibleStoreItems(store).map(item => {
+    function syncChildren(container, nodes) {
+      const wanted = new Set(nodes);
+      Array.from(container.children).forEach(row => { if (!wanted.has(row)) row.remove(); });
+      let cursor = container.firstElementChild;
+      for (const row of nodes) {
+        if (row !== cursor) container.insertBefore(row, cursor);
+        cursor = row.nextElementSibling;
+      }
+    }
+
+    function cachedItemRows(items) {
+      return items.map(item => {
         let row = renderedItemNodes.get(item.id);
         if (!row) {
           const template = document.createElement("template");
@@ -1985,13 +2034,35 @@ SOFTWARE.
         }
         return row;
       });
-      const wanted = new Set(nodes);
-      Array.from(list.children).forEach(row => { if (!wanted.has(row)) row.remove(); });
-      let cursor = list.firstElementChild;
-      for (const row of nodes) {
-        if (row !== cursor) list.insertBefore(row, cursor);
-        cursor = row.nextElementSibling;
+    }
+
+    function refreshStoreList() {
+      const store = getStore(ui.storeId);
+      const list = appEl.querySelector(".list");
+      if (ui.screen !== "store" || !store || !list) return render();
+      disposeReordering();
+      if (showingAllStores()) {
+        const groups = new Map(Array.from(list.querySelectorAll("[data-store-section]"), section => [section.dataset.storeSection, section]));
+        const nodes = [];
+        for (const s of appData.stores) {
+          const items = visibleStoreItems(s);
+          if (!items.length) continue;
+          let group = groups.get(s.id);
+          if (!group) {
+            const template = document.createElement("template");
+            template.innerHTML = renderShoppingGroup(s, []);
+            group = template.content.firstElementChild;
+          }
+          syncChildren(group.querySelector(".shopping-items"), cachedItemRows(items));
+          nodes.push(group);
+        }
+        syncChildren(list, nodes);
+        if (!nodes.length) list.innerHTML = renderShoppingEmpty();
+        updateRemainingCount(store);
+        return;
       }
+      const nodes = cachedItemRows(visibleStoreItems(store));
+      syncChildren(list, nodes);
       if (!nodes.length) list.innerHTML = renderStoreEmpty();
       updateRemainingCount(store);
       setupReordering();
@@ -2030,6 +2101,7 @@ SOFTWARE.
     function openStore(storeId) {
       ui.screen = "store";
       ui.storeId = storeId;
+      ui.allStores = false;
       ui.searchOpen = false;
       ui.searchQuery = "";
       render();
@@ -2081,6 +2153,13 @@ SOFTWARE.
       }
 
       if (action === "back-home") {
+        if (showingAllStores()) {
+          ui.allStores = false;
+          ui.searchOpen = false;
+          ui.searchQuery = "";
+          render();
+          return;
+        }
         ui.screen = "home";
         ui.storeId = null;
         ui.searchOpen = false;
@@ -2185,7 +2264,7 @@ SOFTWARE.
       }
 
       if (action === "toggle-planned") {
-        const store = getStore(ui.storeId);
+        const store = getStore(el.closest("[data-store-id]")?.dataset.storeId || ui.storeId);
         if (!store) return;
         const it = getItem(store, id);
         if (!it) return;
@@ -2200,7 +2279,7 @@ SOFTWARE.
       }
 
       if (action === "qty-inc" || action === "qty-dec") {
-        const store = getStore(ui.storeId);
+        const store = getStore(el.closest("[data-store-id]")?.dataset.storeId || ui.storeId);
         if (!store) return;
         const it = getItem(store, id);
         if (!it) return;
@@ -2214,7 +2293,7 @@ SOFTWARE.
       }
 
       if (action === "item-gear") {
-        const store = getStore(ui.storeId);
+        const store = getStore(el.closest("[data-store-id]")?.dataset.storeId || ui.storeId);
         if (!store) return;
         const it = getItem(store, id);
         if (!it) return;
@@ -2275,6 +2354,8 @@ SOFTWARE.
 
       if (action === "toggle-filter-pill") {
         ui.filterOn = !ui.filterOn;
+        if (!ui.filterOn) ui.allStores = false;
+        swipe = null;
         render();
         toast(ui.filterOn ? "Filtre ON" : "Filtre OFF");
         return;
@@ -2285,14 +2366,17 @@ SOFTWARE.
         if (!store) return;
 
         const canRestore = !!store.template && !!ORIGINAL_TEMPLATES[store.template];
+        const allStores = showingAllStores();
 
         const choice = await showSheet({
           title: "Actions",
           items: [
             { label: "Undo", value: "undo", disabled: !undoStack.length, hint: undoStack.length ? `${undoStack.length}` : "—" },
-            { label: ui.filterOn ? "Filtre : ON (désactiver)" : "Filtre : OFF (activer)", value: "filter" },
-            { label: "Nouvelle course", value: "new" },
-            { label: "Restaurer la liste d’origine", value: "restore", disabled: !canRestore },
+            ...(ui.filterOn ? [{ label: allStores ? "Ce magasin uniquement" : "Tous les magasins", value: "scope" }] : []),
+            ...(!allStores ? [
+              { label: "Nouvelle course", value: "new" },
+              { label: "Restaurer la liste d’origine", value: "restore", disabled: !canRestore }
+            ] : []),
             { label: "Annuler", value: "cancel" }
           ]
         });
@@ -2300,10 +2384,13 @@ SOFTWARE.
         if (choice === "undo") {
           doUndo();
         }
-        if (choice === "filter") {
-          ui.filterOn = !ui.filterOn;
+        if (choice === "scope" && ui.filterOn) {
+          ui.allStores = !ui.allStores;
+          ui.searchOpen = false;
+          ui.searchQuery = "";
+          swipe = null;
           render();
-          toast(ui.filterOn ? "Filtre ON" : "Filtre OFF");
+          window.scrollTo(0, 0);
         }
         if (choice === "new") {
           const ok = await showConfirm({
@@ -2481,7 +2568,11 @@ SOFTWARE.
         if (reorderSession || Sortable.dragged === row) return cancelReordering();
         row.remove();
         const store = getStore(ui.storeId);
-        if (!container.querySelector(".item-row") && store) container.innerHTML = renderStoreItems(store);
+        if (showingAllStores()) {
+          if (!container.querySelector(".item-row")) container.closest("[data-store-section]")?.remove();
+          const list = appEl.querySelector(".list");
+          if (list && !list.querySelector(".item-row")) list.innerHTML = renderShoppingEmpty();
+        } else if (!container.querySelector(".item-row") && store) container.innerHTML = renderStoreItems(store);
         if (listSorter) listSorter.option("disabled", container.querySelectorAll(".item-row:not(.removing)").length < 2);
       };
       const onEnd = event => {
@@ -2505,7 +2596,7 @@ SOFTWARE.
     let swipe = null;
 
     document.addEventListener("touchstart", (e) => {
-      if (ui.screen !== "store") return;
+      if (ui.screen !== "store" || showingAllStores()) return;
 	  if (e.target.closest(".checkbox, .stepper, .btn, .handle, .searchbar, .modalOverlay, .item-row, .store-row")) return;
       const t = e.touches && e.touches[0];
       if (!t) return;
@@ -2607,6 +2698,7 @@ SOFTWARE.
 
     function setupReordering() {
       if (ui.screen !== "home" && ui.screen !== "store") return;
+      if (showingAllStores()) return;
       const type = ui.screen === "home" ? "store" : "item";
       const selector = type === "store" ? ".store-row" : ".item-row";
       const container = appEl.querySelector(".list");
