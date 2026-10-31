@@ -65,12 +65,10 @@ const fixture = { schemaVersion: 1, prefs: { theme: 'dark' }, lastBackupISO: nul
       assert.equal(await scope.count(), 1,
         'Tous les magasins doit toujours être visible, même avec le filtre OFF');
       assert.equal(await scope.locator('div').first().innerText(), 'Tous les magasins');
-      assert.equal(await scope.locator('div').last().innerText(), 'Activer le filtre');
-      assert.equal(await scope.getAttribute('aria-disabled'), 'true');
-      await scope.evaluate(node => node.click());
-      assert.equal(await page.locator('.sheet').count(), 1, 'Un choix désactivé ne ferme pas le menu');
+      assert.equal(await scope.locator('div').last().innerText(), 'OFF');
+      assert.notEqual(await scope.getAttribute('aria-disabled'), 'true');
       assert.deepEqual(await groups(), []);
-      assert.deepEqual(await stored(), fixture, 'Le choix désactivé ne change pas les courses');
+      assert.deepEqual(await stored(), fixture, 'Ouvrir le menu ne change pas les courses');
       await choice('cancel');
       await page.locator('[data-action="toggle-filter-pill"]').click();
       assert.deepEqual(await rows(), ['b2', 'b1']);
@@ -127,17 +125,16 @@ const fixture = { schemaVersion: 1, prefs: { theme: 'dark' }, lastBackupISO: nul
       assert.deepEqual(await groups(), ['s_b', 's_a']);
       assert.deepEqual(await rows(), ['b2', 'b1', 'a1']);
 
-      // Retour et filtre OFF doivent ramener au magasin d'où la vue a été ouverte.
+      // La navigation et le filtre ne doivent jamais changer le choix du périmètre.
       await page.locator('[data-action="back-home"]').click();
-      assert.equal(await page.locator('.store-title').innerText(), 'Marché');
-      assert.deepEqual(await rows(), ['b2', 'b1']);
-      await openGlobal();
+      assert.equal(await page.locator('[data-action="open-store"]').count(), 3);
+      await page.locator('[data-action="open-store"][data-id="s_b"]').click();
+      assert.deepEqual(await groups(), ['s_b', 's_a']);
       await page.locator('[data-action="toggle-filter-pill"]').click();
       assert.equal(await page.locator('.store-title').innerText(), 'Marché');
       assert.deepEqual(await rows(), ['b2', 'b_off', 'b1']);
       await page.locator('[data-action="toggle-filter-pill"]').click();
-      assert.deepEqual(await groups(), [], 'Réactiver le filtre seul ne change pas les modalités d’affichage');
-      await openGlobal();
+      assert.deepEqual(await groups(), ['s_b', 's_a'], 'Réactiver le filtre retrouve le périmètre choisi');
       await menu(); await choice('scope');
       assert.equal(await page.locator('.store-title').innerText(), 'Marché');
       assert.deepEqual(await rows(), ['b2', 'b1']);
@@ -209,7 +206,8 @@ const fixture = { schemaVersion: 1, prefs: { theme: 'dark' }, lastBackupISO: nul
       }
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
       assert.equal(await page.locator('.store-title').innerText(), 'À acheter', 'Un balayage ne quitte pas la vue globale');
-      assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), storageKey), longFixture);
+      assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), storageKey),
+        { ...longFixture, prefs: { ...longFixture.prefs, allStores: true } });
       assert.deepEqual(errors, []);
       results.push({ globalTouchScroll: true, stickyToolbar: true, noStoreSwipe: true, passed: true });
       await context.close();

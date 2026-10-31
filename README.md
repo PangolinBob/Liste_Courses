@@ -53,18 +53,24 @@ Dans chaque magasin :
 - nettoyage rapide de recherche.
 
 Le menu Actions affiche toujours **Tous les magasins**, avec un libellé fixe.
-Avec le filtre **OFF**, ce choix est grisé et indique **Activer le filtre**.
-Avec le filtre **ON**, il bascule entre un magasin et une seule page
-des articles à acheter, regroupés par magasin dans l’ordre enregistré des magasins et
-des articles. Les magasins sans achat sont masqués. La recherche porte sur tous les
-groupes ; les quantités, le toucher pour retirer un achat et Undo modifient les articles
-de leur magasin d’origine.
+Ce réglage est modifiable quel que soit l’état du filtre. Son état **ON/OFF** indique
+le périmètre choisi pour le filtre :
 
-L’état **ON/OFF** affiché à côté de **Tous les magasins** indique si la vue globale
-est active. Toucher à nouveau ce choix ramène au magasin de départ.
-Le bouton Retour et le passage du filtre à OFF y ramènent aussi. Réactiver le filtre
-seul conserve l’affichage d’un seul magasin. Le choix d’affichage reste dans Actions,
-sans accès supplémentaire à l’accueil.
+- filtre **OFF** : tous les articles du magasin actif ;
+- filtre **ON**, **Tous les magasins OFF** : les articles à acheter du magasin actif ;
+- filtre **ON**, **Tous les magasins ON** : les articles à acheter de tous les magasins,
+  regroupés dans l’ordre enregistré des magasins et de leurs articles.
+
+Le choix est enregistré dans les préférences locales et conservé au passage du filtre
+à OFF, au retour à l’accueil, au changement de magasin et à la réouverture de l’app.
+Retour mène à l’accueil sans modifier ce choix ; Undo annule les données sans annuler
+le réglage d’affichage. Restaurer une ancienne sauvegarde qui ne contient pas ce réglage
+conserve le choix actuel ; une sauvegarde qui le contient restaure sa valeur enregistrée.
+Le réglage reste dans Actions, sans accès supplémentaire à l’accueil.
+
+Dans la vue globale, les magasins sans achat sont masqués. La recherche porte sur tous
+les groupes ; les quantités, le toucher pour retirer un achat et Undo modifient les
+articles de leur magasin d’origine.
 
 L’ajout, la nouvelle course, la restauration et le réordonnancement restent dans la vue
 d’un magasin ; la vue globale reprend cet ordre et conserve ses commandes en haut
@@ -188,6 +194,9 @@ Vérifications :
 - `node tests/global-shopping.cjs` vérifie l’accès avec filtre ON, les groupes et leur ordre,
   les actions dans le bon magasin, la recherche, Undo, les listes vides, la conservation
   des données et le défilement tactile de la vue globale.
+- `node tests/scope-preference.cjs` vérifie le réglage indépendant du filtre et sa
+  conservation après navigation, changement de thème, réouverture, Undo et restauration
+  d’une ancienne sauvegarde.
 - `node tests/interactions.cjs --baseline` reproduit le compteur bloqué sans animation sur la version de référence.
 
 Le banc utilise Chromium, un CPU ralenti six fois et des profils isolés de 28 et 300 articles.

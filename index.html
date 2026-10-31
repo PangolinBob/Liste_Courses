@@ -1446,7 +1446,6 @@ SOFTWARE.
       screen: "home",
       storeId: null,
       filterOn: false,   // masque pas prévu + acheté
-      allStores: false,
       searchOpen: false,
       searchQuery: ""
     };
@@ -1507,7 +1506,8 @@ SOFTWARE.
       return {
         schemaVersion: SCHEMA_VERSION,
         prefs: {
-          theme: pickInitialTheme()
+          theme: pickInitialTheme(),
+          allStores: false
         },
         lastBackupISO: null,
         stores
@@ -1618,7 +1618,10 @@ SOFTWARE.
       }
       const raw = undoStack.pop();
       try {
+        const allStores = appData.prefs.allStores === true;
         appData = JSON.parse(raw);
+        // Annuler les données ne doit pas annuler le périmètre choisi dans Actions.
+        appData.prefs.allStores = allStores;
         applyTheme(appData.prefs.theme);
         saveAppData();
         render();
@@ -1823,7 +1826,6 @@ SOFTWARE.
     }
 
     function renderHome() {
-      ui.allStores = false;
       ui.searchOpen = false;
       ui.searchQuery = "";
 
@@ -1914,7 +1916,7 @@ SOFTWARE.
     }
 
     function showingAllStores() {
-      return ui.screen === "store" && ui.filterOn && ui.allStores;
+      return ui.screen === "store" && ui.filterOn && appData.prefs.allStores === true;
     }
 
     function renderShoppingEmpty() {
@@ -2102,7 +2104,6 @@ SOFTWARE.
     function openStore(storeId) {
       ui.screen = "store";
       ui.storeId = storeId;
-      ui.allStores = false;
       ui.searchOpen = false;
       ui.searchQuery = "";
       render();
@@ -2154,13 +2155,6 @@ SOFTWARE.
       }
 
       if (action === "back-home") {
-        if (showingAllStores()) {
-          ui.allStores = false;
-          ui.searchOpen = false;
-          ui.searchQuery = "";
-          render();
-          return;
-        }
         ui.screen = "home";
         ui.storeId = null;
         ui.searchOpen = false;
@@ -2355,7 +2349,6 @@ SOFTWARE.
 
       if (action === "toggle-filter-pill") {
         ui.filterOn = !ui.filterOn;
-        if (!ui.filterOn) ui.allStores = false;
         swipe = null;
         render();
         toast(ui.filterOn ? "Filtre ON" : "Filtre OFF");
@@ -2373,8 +2366,7 @@ SOFTWARE.
           title: "Actions",
           items: [
             { label: "Undo", value: "undo", disabled: !undoStack.length, hint: undoStack.length ? `${undoStack.length}` : "—" },
-            { label: "Tous les magasins", value: "scope", disabled: !ui.filterOn,
-              hint: !ui.filterOn ? "Activer le filtre" : allStores ? "ON" : "OFF" },
+            { label: "Tous les magasins", value: "scope", hint: appData.prefs.allStores === true ? "ON" : "OFF" },
             ...(!allStores ? [
               { label: "Nouvelle course", value: "new" },
               { label: "Restaurer la liste d’origine", value: "restore", disabled: !canRestore }
@@ -2386,8 +2378,9 @@ SOFTWARE.
         if (choice === "undo") {
           doUndo();
         }
-        if (choice === "scope" && ui.filterOn) {
-          ui.allStores = !ui.allStores;
+        if (choice === "scope") {
+          appData.prefs.allStores = appData.prefs.allStores !== true;
+          saveAppData();
           ui.searchOpen = false;
           ui.searchQuery = "";
           swipe = null;
@@ -2531,10 +2524,13 @@ SOFTWARE.
             return;
           }
 
+          const allStores = appData.prefs.allStores === true;
           pushUndo();
           appData = incoming;
           appData.prefs = appData.prefs || {};
           appData.prefs.theme = appData.prefs.theme || pickInitialTheme();
+          // Les anciennes sauvegardes ne connaissent pas ce réglage : conserver le choix actuel.
+          if (typeof appData.prefs.allStores !== "boolean") appData.prefs.allStores = allStores;
           applyTheme(appData.prefs.theme);
           saveAppData();
 

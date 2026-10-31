@@ -12,7 +12,7 @@ const ref = process.argv.find(arg => arg.startsWith('--ref='))?.slice(6);
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const delayMs = 2500;
 const storageKey = 'lc_appData_v1';
-const fixture = { schemaVersion: 1, prefs: { theme: 'light' }, lastBackupISO: '2026-10-01T12:00:00.000Z',
+const fixture = { schemaVersion: 1, prefs: { theme: 'light', allStores: true }, lastBackupISO: '2026-10-01T12:00:00.000Z',
   stores: [{ id: 's_test', name: 'Épicerie test', template: null,
     items: [{ id: 'i_test', name: 'Œufs', qty: 3, planned: true, bought: false }] }] };
 
