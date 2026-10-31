@@ -324,7 +324,7 @@
 	  pointer-events: auto;
 	  cursor: pointer;
 	  -webkit-tap-highlight-color: transparent;
-	  /* évite de recouvrir le bouton thème à droite */
+	  /* évite de recouvrir le bouton Actions à droite */
 	  width: calc(100% - 120px);
 	  transition: opacity 120ms ease;
 	}
@@ -1550,6 +1550,14 @@ SOFTWARE.
       applyVisualTuning();
     }
 
+    function toggleTheme() {
+      pushUndo();
+      appData.prefs.theme = (appData.prefs.theme === "dark") ? "light" : "dark";
+      applyTheme(appData.prefs.theme);
+      saveAppData();
+      render();
+    }
+
     let appData = loadAppData() || createAppDataFromTemplates();
     applyTheme(appData.prefs.theme);
     saveAppData(); // assure un état stable dès le début
@@ -1829,9 +1837,6 @@ SOFTWARE.
       ui.searchOpen = false;
       ui.searchQuery = "";
 
-      const theme = appData.prefs.theme;
-      const themeLabel = theme === "dark" ? "Mode sombre" : "Mode clair";
-
 		const storesHtml = appData.stores.map(s => {
 		  const rest = (s.items || []).filter(it => it && it.planned).length;
 		  const badge = rest > 0
@@ -1860,9 +1865,7 @@ SOFTWARE.
         <div class="topbar">
           <div class="title" data-action="open-settings" role="button" aria-label="Ouvrir les réglages">Listes</div>
           <div class="right">
-            <button class="btn icon" data-action="toggle-theme" aria-label="${escapeHtml(themeLabel)}">
-              ${theme === "dark" ? icon("moon") : icon("sun")}
-            </button>
+            <button class="btn icon" data-action="store-menu" aria-label="Actions">${icon("more")}</button>
           </div>
         </div>
 
@@ -2131,12 +2134,7 @@ SOFTWARE.
       const id = el.dataset.id;
 
       if (action === "toggle-theme") {
-        pushUndo();
-        appData.prefs.theme = (appData.prefs.theme === "dark") ? "light" : "dark";
-        applyTheme(appData.prefs.theme);
-        saveAppData();
-        render();
-        toast(appData.prefs.theme === "dark" ? "Mode sombre" : "Mode clair");
+        toggleTheme();
         return;
       }
 	  
@@ -2351,15 +2349,14 @@ SOFTWARE.
         ui.filterOn = !ui.filterOn;
         swipe = null;
         render();
-        toast(ui.filterOn ? "Filtre ON" : "Filtre OFF");
         return;
       }
 
       if (action === "store-menu") {
-        const store = getStore(ui.storeId);
-        if (!store) return;
+        const store = ui.screen === "store" ? getStore(ui.storeId) : null;
+        if (!store && ui.screen !== "home") return;
 
-        const canRestore = !!store.template && !!ORIGINAL_TEMPLATES[store.template];
+        const canRestore = !!store && !!store.template && !!ORIGINAL_TEMPLATES[store.template];
         const allStores = showingAllStores();
 
         const choice = await showSheet({
@@ -2367,7 +2364,8 @@ SOFTWARE.
           items: [
             { label: "Undo", value: "undo", disabled: !undoStack.length, hint: undoStack.length ? `${undoStack.length}` : "—" },
             { label: "Tous les magasins", value: "scope", hint: appData.prefs.allStores === true ? "ON" : "OFF" },
-            ...(!allStores ? [
+            { label: appData.prefs.theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre", value: "theme" },
+            ...(store && !allStores ? [
               { label: "Nouvelle course", value: "new" },
               { label: "Restaurer la liste d’origine", value: "restore", disabled: !canRestore }
             ] : []),
@@ -2377,6 +2375,9 @@ SOFTWARE.
 
         if (choice === "undo") {
           doUndo();
+        }
+        if (choice === "theme") {
+          toggleTheme();
         }
         if (choice === "scope") {
           appData.prefs.allStores = appData.prefs.allStores !== true;

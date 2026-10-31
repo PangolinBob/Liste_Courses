@@ -66,7 +66,7 @@ Le choix est enregistré dans les préférences locales et conservé au passage 
 Retour mène à l’accueil sans modifier ce choix ; Undo annule les données sans annuler
 le réglage d’affichage. Restaurer une ancienne sauvegarde qui ne contient pas ce réglage
 conserve le choix actuel ; une sauvegarde qui le contient restaure sa valeur enregistrée.
-Le réglage reste dans Actions, sans accès supplémentaire à l’accueil.
+Le réglage reste dans Actions, accessible depuis l’accueil et depuis un magasin.
 
 Dans la vue globale, les magasins sans achat sont masqués. La recherche porte sur tous
 les groupes ; les quantités, le toucher pour retirer un achat et Undo modifient les
@@ -86,8 +86,13 @@ testée sur PC et vérifiée en ligne ; son essai sur l’iPhone reste à faire.
 - support tactile (appui long + déplacement), auto-scroll, garde-fous iOS.
 
 ## 5) Actions de liste
-Menu “Actions” d’un magasin :
+Le bouton “Actions” (trois points) est accessible en haut à droite de l’accueil et
+dans chaque magasin. Les commandes communes sont :
 - Undo,
+- Tous les magasins (réglage ON/OFF),
+- Passer en mode clair / Passer en mode sombre.
+
+Dans la vue d’un magasin, le menu propose également :
 - Nouvelle course (remet `planned=false` sans toucher aux quantités),
 - Restaurer la liste d’origine (si magasin template).
 
@@ -99,7 +104,8 @@ Depuis l’écran Réglages :
 Le JSON inclut l’état complet (magasins, articles, quantités, préférences thème…).
 
 ## 7) Thème et UI
-- thème clair/sombre,
+- thème clair/sombre depuis Actions (choix mémorisé),
+- changement de thème et filtre ON/OFF sans pastille de confirmation,
 - rendu “glassmorphism” ajustable (`VISUAL.GLASS`, `VISUAL.CONTRAST`),
 - splash screen animé,
 - toasts, modales, action sheets.
