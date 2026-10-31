@@ -3147,7 +3147,7 @@ SOFTWARE.
 		if (e && e.preventDefault) e.preventDefault();
 		enterApp();
 	  };
-	  splashEl.addEventListener("pointerdown", onSplash, { passive: false });
+	  // Attendre le toucher complet pour ne pas transmettre son clic à un magasin sous l’écran.
 	  splashEl.addEventListener("click", onSplash, { passive: false });
 	}
 

@@ -201,6 +201,18 @@ const fixture = { schemaVersion: 1, prefs: { theme: 'dark', allStores: false }, 
       assert.equal(await s.page.locator('#searchInput').inputValue(), 'creme');
       assert.deepEqual(await s.names(), ['Crème fraîche']);
     });
+    await scenario('le toucher d’ouverture ne traverse pas vers un magasin', async s => {
+      const sixStores = { ...fixture, stores: Array.from({ length: 6 }, (_, index) => ({
+        id: `s_opening_${index}`, name: `Magasin ${index + 1}`, template: null, items: []
+      })) };
+      await s.page.evaluate(({ key, data }) => localStorage.setItem(key, JSON.stringify(data)), { key, data: sixStores });
+      await s.page.reload();
+      assert.equal(await s.page.locator('[data-action="open-store"]').count(), 6);
+      await s.page.locator('#splash').tap();
+      assert.equal(await s.page.locator('[data-action="open-store"]').count(), 6,
+        'Le même toucher doit révéler l’accueil sans ouvrir le magasin situé dessous');
+      assert.equal(await s.page.locator('body').evaluate(el => el.classList.contains('entered')), true);
+    });
     console.log(JSON.stringify({ source: reference || 'working-tree', engine: 'Chromium PC, clavier simulé', results }, null, 2));
     if (results.some(r => !r.passed)) process.exitCode = 1;
   } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }

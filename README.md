@@ -251,6 +251,7 @@ Safari sur l’iPhone 13 mini.
 L’accueil est disponible dès son rendu, sans attendre `window.load`, les images, les polices
 ou une temporisation de 320 ms. Le toucher de l’écran au caddie révèle cet accueil déjà préparé.
 Son animation et le fonctionnement des listes restent identiques.
+Le toucher complet de cet écran révèle l’accueil sans activer le magasin situé dessous.
 
 Syne est servie depuis `fonts/`, avec `font-display: swap` : aucun appel à Google Fonts
 au démarrage. Les fichiers WOFF2 officiels de Syne v24 conservent les poids 500/600 et
