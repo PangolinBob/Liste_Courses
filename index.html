@@ -967,6 +967,15 @@
       border-bottom: none;
     }
 
+    .sheet-footer {
+      padding: 10px 14px 12px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+      text-align: center;
+    }
+
     /* toasts */
     #toastRoot {
       position: fixed;
@@ -1430,6 +1439,7 @@ SOFTWARE.
     ---------------------------- */
     const STORAGE_KEY = "lc_appData_v1";
     const SCHEMA_VERSION = 1;
+    const APP_VERSION = "1.1";
 
     const $ = (sel, root=document) => root.querySelector(sel);
     const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
@@ -1740,7 +1750,7 @@ SOFTWARE.
       });
     }
 
-    function showSheet({ title, items }) {
+    function showSheet({ title, items, footer="" }) {
       return new Promise(resolve => {
         modalRoot.innerHTML = "";
         const overlay = document.createElement("div");
@@ -1750,6 +1760,7 @@ SOFTWARE.
           <div class="sheet" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
             <div class="title">${escapeHtml(title)}</div>
             <div class="items"></div>
+            ${footer ? `<div class="sheet-footer">${escapeHtml(footer)}</div>` : ""}
           </div>
         `;
         modalRoot.appendChild(overlay);
@@ -1863,7 +1874,7 @@ SOFTWARE.
 
       appEl.innerHTML = `
         <div class="topbar">
-          <div class="title" data-action="open-settings" role="button" aria-label="Ouvrir les réglages">Listes</div>
+          <div class="title" data-action="open-settings" role="button" aria-label="Ouvrir les sauvegardes">Listes</div>
           <div class="right">
             <button class="btn icon" data-action="store-menu" aria-label="Actions">${icon("more")}</button>
           </div>
@@ -1890,7 +1901,7 @@ SOFTWARE.
       appEl.innerHTML = `
         <div class="store-header">
           <button class="btn icon" data-action="back-home" aria-label="Retour">${icon("back")}</button>
-          <div class="store-title">Réglages</div>
+          <div class="store-title">Sauvegardes</div>
           <button class="btn icon" data-action="toggle-theme" aria-label="${escapeHtml(themeLabel)}">
             ${theme === "dark" ? icon("moon") : icon("sun")}
           </button>
@@ -2361,6 +2372,7 @@ SOFTWARE.
 
         const choice = await showSheet({
           title: "Actions",
+          footer: `Version ${APP_VERSION}`,
           items: [
             { label: "Undo", value: "undo", disabled: !undoStack.length, hint: undoStack.length ? `${undoStack.length}` : "—" },
             { label: "Tous les magasins", value: "scope", hint: appData.prefs.allStores === true ? "ON" : "OFF" },
@@ -2369,6 +2381,7 @@ SOFTWARE.
               { label: "Nouvelle course", value: "new" },
               { label: "Restaurer la liste d’origine", value: "restore", disabled: !canRestore }
             ] : []),
+            { label: "Sauvegardes", value: "backups" },
             { label: "Annuler", value: "cancel" }
           ]
         });
@@ -2378,6 +2391,14 @@ SOFTWARE.
         }
         if (choice === "theme") {
           toggleTheme();
+        }
+        if (choice === "backups") {
+          ui.screen = "settings";
+          ui.storeId = null;
+          ui.searchOpen = false;
+          ui.searchQuery = "";
+          render();
+          window.scrollTo(0, 0);
         }
         if (choice === "scope") {
           appData.prefs.allStores = appData.prefs.allStores !== true;
