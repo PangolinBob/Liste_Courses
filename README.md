@@ -76,8 +76,9 @@ L’ajout, la nouvelle course, la restauration et le réordonnancement restent d
 d’un magasin ; la vue globale reprend cet ordre et conserve ses commandes en haut
 pendant le défilement.
 
-La vue tous magasins et la conservation de l’ordre ont été validées sur l’iPhone
-13 mini le 30 octobre 2026.
+Le regroupement des articles et la conservation de leur ordre ont été validés sur
+l’iPhone 13 mini le 30 octobre 2026. La stabilité du réglage mémorisé de 8421d67 a été
+testée sur PC et vérifiée en ligne ; son essai sur l’iPhone reste à faire.
 
 ## 4) Réorganisation (drag & drop)
 - Réordre des magasins (écran home).
