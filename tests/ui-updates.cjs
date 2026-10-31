@@ -201,6 +201,55 @@ const fixture = { schemaVersion: 1, prefs: { theme: 'dark', allStores: false }, 
       assert.equal(await s.page.locator('#searchInput').inputValue(), 'creme');
       assert.deepEqual(await s.names(), ['Crème fraîche']);
     });
+    await scenario('les actions déjà visibles ne produisent pas de pastille', async s => {
+      await s.page.evaluate(() => {
+        window.visibleActionMessages = [];
+        new MutationObserver(records => {
+          for (const record of records) for (const node of record.addedNodes) {
+            if (node.nodeType === 1) window.visibleActionMessages.push(node.textContent);
+          }
+        }).observe(document.querySelector('#toastRoot'), { childList: true });
+      });
+      await s.page.locator('[data-action="add-item"]').tap();
+      await s.page.locator('.modal input').fill('Article de contrôle');
+      await s.page.locator('[data-modal-ok]').tap();
+      const added = s.page.locator('.item-row').filter({ hasText: 'Article de contrôle' });
+      await added.waitFor();
+      const addedId = await added.getAttribute('data-item-row');
+      await added.locator('[data-action="item-gear"]').tap(); await s.choice('rename');
+      await s.page.locator('.modal input').fill('Article renommé');
+      await s.page.locator('[data-modal-ok]').tap();
+      await s.page.locator(`[data-item-row="${addedId}"] [data-action="item-gear"]`).tap();
+      await s.choice('delete'); await s.page.locator('[data-modal-ok]').tap();
+      await s.page.locator(`[data-item-row="${addedId}"]`).waitFor({ state: 'detached' });
+      await s.menu(); await s.choice('undo');
+      await s.page.locator(`[data-item-row="${addedId}"]`).waitFor();
+      await s.menu(); await s.choice('new'); await s.page.locator('[data-modal-ok]').tap();
+      assert.deepEqual(await s.page.evaluate(() => window.visibleActionMessages), [],
+        'Ajout, renommage, suppression, Undo et nouvelle course sont déjà visibles');
+    });
+    await scenario('une erreur utile reste visible au-dessus du clavier et hors de l’en-tête', async s => {
+      await s.page.evaluate(() => {
+        resizeVisibleArea({ width: 375, height: 360, offsetTop: 80, offsetLeft: 0, scale: 1 });
+        const previous = Storage.prototype.setItem;
+        Storage.prototype.setItem = function (name, value) {
+          if (name === 'lc_appData_v1') throw new DOMException('Refus simulé', 'QuotaExceededError');
+          return previous.call(this, name, value);
+        };
+      });
+      await s.page.locator('[data-item-row="i_z"] [data-action="qty-inc"]').tap();
+      await s.page.waitForFunction(() => /Enregistrement impossible/.test(document.querySelector('#toastRoot').textContent));
+      const notice = await s.page.locator('#toastRoot .toast').boundingBox();
+      const title = await s.page.locator('.store-title').boundingBox();
+      assert.ok(notice.y >= 80 && notice.y + notice.height <= 440,
+        'L’erreur doit rester dans la zone réellement visible');
+      assert.ok(notice.y >= title.y + title.height, 'Le message ne doit pas masquer le nom du magasin');
+      assert.equal((await s.data()).stores[0].items[0].qty, 2);
+      await s.page.evaluate(() => resizeVisibleArea({ width: 300, height: 280, offsetTop: 110, offsetLeft: 30, scale: 1.25 }));
+      const moved = await s.page.locator('#toastRoot .toast').boundingBox();
+      assert.ok(moved.y >= 110 && moved.y + moved.height <= 390, 'Le message suit les mouvements du clavier');
+      assert.ok(moved.x >= 30 && moved.x + moved.width <= 330, 'Le message reste lisible après un zoom');
+    });
     await scenario('le toucher d’ouverture ne traverse pas vers un magasin', async s => {
       const sixStores = { ...fixture, stores: Array.from({ length: 6 }, (_, index) => ({
         id: `s_opening_${index}`, name: `Magasin ${index + 1}`, template: null, items: []

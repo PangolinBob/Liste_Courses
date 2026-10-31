@@ -111,6 +111,8 @@ async function run() {
         assert.equal(ids.length, before.stores[0].items.length);
         assert.deepEqual(after.stores[0].items.map(it => [it.id, it.qty, it.planned]).sort(),
           before.stores[0].items.map(it => [it.id, it.qty, it.planned]).sort());
+        assert.equal(await page.locator('#toastRoot .toast').count(), 0,
+          'Le déplacement visible ne doit pas ajouter une pastille par-dessus la liste');
         await page.reload();
         assert.deepEqual((await stored(page)).stores[0].items.map(it => it.id), ids, 'Ordre sauvegardé');
         results.push({ case: 'article déplacé puis relâché', passed: true });
@@ -144,6 +146,8 @@ async function run() {
         assert.deepEqual(after.stores.map(s => s.id).sort(), before.stores.map(s => s.id).sort());
         assert.equal(await page.locator('.store-row').count(), before.stores.length,
           'Un déplacement ne doit pas ouvrir le magasin');
+        assert.equal(await page.locator('#toastRoot .toast').count(), 0,
+          'Le déplacement d’un magasin ne doit pas ajouter une pastille');
         results.push({ case: 'magasin déplacé', passed: true });
         await context.close();
       }

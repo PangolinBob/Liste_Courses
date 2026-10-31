@@ -2,7 +2,7 @@
 
 Application web locale de **liste de courses** (mobile-first), avec interface et logique intégrées dans `index.html`, ressources locales et persistance locale.
 
-La **version 1.1** est indiquée au bas du menu Actions. Ce numéro appartient au
+La **version 1.1.1** est indiquée au bas du menu Actions. Ce numéro appartient au
 programme effectivement chargé, y compris quand il vient du cache local.
 
 ## Objectif
@@ -139,6 +139,39 @@ l’action refusée ne pollue pas Undo.
 - rendu “glassmorphism” ajustable (`VISUAL.GLASS`, `VISUAL.CONTRAST`),
 - splash screen animé,
 - toasts, modales, action sheets.
+
+### Messages temporaires
+
+La version 1.1 contenait 24 messages possibles. La version 1.1.1 en retire 14 qui
+répétaient un changement visible, une annulation volontaire ou une indication déjà
+portée par l’écran. Les 10 messages conservés concernent les fichiers et les erreurs.
+Ils apparaissent en bas de la zone réellement visible, au-dessus du clavier quand il
+est ouvert, afin de laisser libre le nom du magasin. Les confirmations de thème et de
+filtre avaient déjà été supprimées avant la version 1.1.
+
+| Messages retirés | Motif |
+|---|---|
+| Ordre mis à jour | L’ordre est immédiatement visible. |
+| Magasin ajouté ; Magasin renommé ; Magasin supprimé | Le résultat est visible dans la liste. |
+| Article ajouté ; Article renommé ; Article supprimé | Le résultat est visible dans la liste. |
+| Nouvelle course ; Liste restaurée | La liste montre déjà le résultat de l’action confirmée. |
+| Annulé | Le résultat d’Undo est visible. |
+| Rien à annuler | Undo est déjà grisé quand l’historique est vide ; son garde-fou demeure. |
+| Export annulé ; Sauvegarde annulée | L’utilisateur vient lui-même d’annuler. |
+| Choisis le fichier de sauvegarde (.json) | Le sélecteur de fichier donne déjà cette indication. |
+
+| Messages conservés | Utilité |
+|---|---|
+| Sauvegarde créée | Confirme que le fichier a été proposé au partage ou au téléchargement ; son enregistrement effectif dépend ensuite du choix de l’utilisateur. |
+| Restauration OK | Confirme que le fichier a été lu, validé et appliqué. |
+| Contenu conservé exporté | Confirme l’export du contenu de récupération. |
+| Undo impossible | Signale l’échec d’une action demandée. |
+| Enregistrement impossible. La modification n’a pas été conservée. | Prévient qu’un changement n’a pas été enregistré et a été annulé. |
+| Sauvegarde impossible | Signale que le fichier n’a pas pu être préparé ou proposé. |
+| Export impossible. Le contenu reste conservé dans l’app. | Signale l’échec de l’export de récupération. |
+| Fichier invalide. Les données précédentes sont conservées. | Explique le refus d’une restauration sans perte des listes existantes. |
+| Restauration impossible. Les données précédentes sont conservées. | Signale l’échec de la restauration. |
+| Le fichier a été préparé, mais sa date n’a pas pu être enregistrée dans l’app. | Distingue la préparation du fichier de l’échec de mise à jour de sa date. |
 
 ---
 

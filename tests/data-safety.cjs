@@ -78,12 +78,18 @@ const invalidRaw = '{"schemaVersion":1,"stores":[';
         const settings = () => page.locator('[data-action="open-settings"]').click();
         const back = () => page.locator('[data-action="back-home"]').click();
         async function importData(data) {
+          const previousNotice = await page.locator('#toastRoot').evaluateHandle(root => root.firstElementChild);
           const chooserPromise = page.waitForEvent('filechooser');
           await page.locator('[data-action="import"]').click();
           await (await chooserPromise).setFiles({ name: 'sauvegarde-test.json', mimeType: 'application/json',
             buffer: Buffer.from(JSON.stringify({ appData: data })) });
           await page.locator('[data-modal-ok]').click();
-          await page.waitForFunction(() => /invalide|impossible|restauration|restaurée/i.test(document.querySelector('#toastRoot').textContent));
+          // Attendre l’issue de cet import, pas un ancien message encore affiché.
+          await page.waitForFunction(previous => {
+            const current = document.querySelector('#toastRoot').firstElementChild;
+            return current && current !== previous && /invalide|impossible|restauration|restaurée/i.test(current.textContent);
+          }, previousNotice);
+          await previousNotice.dispose();
         }
         const quantity = () => page.locator('[data-item-row="i_first"] .qty').innerText();
         const errorToast = async () => {
