@@ -1449,6 +1449,9 @@ SOFTWARE.
     const toastRoot = $("#toastRoot");
 
     let undoStack = []; // snapshots en mémoire
+    let pendingUndoSnapshot = null;
+    let lastSavedSnapshot = null;
+    let storageRecovery = null;
     let suppressClickUntil = 0;
     const renderedItemNodes = new Map();
 
@@ -1524,29 +1527,81 @@ SOFTWARE.
       };
     }
 
+    function validateAppData(data) {
+      const record = value => value !== null && typeof value === "object" && !Array.isArray(value);
+      const named = value => typeof value === "string" && value.trim().length > 0;
+      const safeId = value => typeof value === "string" && /^[A-Za-z0-9_-]+$/.test(value);
+      if (!record(data) || data.schemaVersion !== SCHEMA_VERSION || !Array.isArray(data.stores)) {
+        throw new Error("Le format ou la version des données n’est pas reconnu.");
+      }
+      if (data.prefs != null && !record(data.prefs)) throw new Error("Les préférences sont invalides.");
+      const prefs = data.prefs || {};
+      if (prefs.theme && prefs.theme !== "dark" && prefs.theme !== "light") throw new Error("Le thème est invalide.");
+      if (prefs.allStores !== undefined && typeof prefs.allStores !== "boolean") throw new Error("Le périmètre est invalide.");
+      if (data.lastBackupISO != null && typeof data.lastBackupISO !== "string") throw new Error("La date de sauvegarde est invalide.");
+      const storeIds = new Set();
+      const itemIds = new Set();
+      for (const store of data.stores) {
+        if (!record(store) || !safeId(store.id) || storeIds.has(store.id) || !named(store.name) ||
+            !Array.isArray(store.items) || (store.template != null && typeof store.template !== "string")) {
+          throw new Error("Un magasin est incomplet ou possède un identifiant invalide.");
+        }
+        storeIds.add(store.id);
+        for (const item of store.items) {
+          if (!record(item) || !safeId(item.id) || itemIds.has(item.id) || !named(item.name) ||
+              !Number.isInteger(item.qty) || item.qty < 1 || item.qty > 99 || typeof item.planned !== "boolean" ||
+              (item.bought !== undefined && typeof item.bought !== "boolean")) {
+            throw new Error("Un article est incomplet ou possède une quantité ou un identifiant invalide.");
+          }
+          itemIds.add(item.id);
+        }
+      }
+      // Les champs inconnus et le contenu des listes ne sont ni supprimés ni réécrits.
+      data.prefs = prefs;
+      data.prefs.theme = prefs.theme || pickInitialTheme();
+      return data;
+    }
+
     function loadAppData() {
+      let raw = null;
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return null;
-        const data = JSON.parse(raw);
-
-        // validation light
-        if (!data || typeof data !== "object") return null;
-        if (data.schemaVersion !== SCHEMA_VERSION) return null;
-        if (!Array.isArray(data.stores)) return null;
-
-        // patch prefs
-        data.prefs = data.prefs || {};
-        data.prefs.theme = data.prefs.theme || pickInitialTheme();
-
+        raw = localStorage.getItem(STORAGE_KEY);
+        if (raw === null) return null;
+        const data = validateAppData(JSON.parse(raw));
+        lastSavedSnapshot = JSON.stringify(data);
         return data;
       } catch {
+        storageRecovery = { raw, message: raw === null
+          ? "Les données enregistrées ne sont pas accessibles pour le moment."
+          : "Les données enregistrées ne peuvent pas être ouvertes dans cette version de l’app." };
         return null;
       }
     }
 
-    function saveAppData() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    function saveAppData({ errorMessage = "Enregistrement impossible. La modification n’a pas été conservée." } = {}) {
+      try {
+        const snapshot = JSON.stringify(appData);
+        localStorage.setItem(STORAGE_KEY, snapshot);
+        lastSavedSnapshot = snapshot;
+        if (pendingUndoSnapshot !== null) {
+          undoStack.push(pendingUndoSnapshot);
+          if (undoStack.length > 60) undoStack.shift();
+        }
+        pendingUndoSnapshot = null;
+        return true;
+      } catch {
+        pendingUndoSnapshot = null;
+        if (lastSavedSnapshot !== null) appData = JSON.parse(lastSavedSnapshot);
+        else {
+          storageRecovery = storageRecovery || { raw: null,
+            message: "L’app ne peut pas enregistrer les courses sur cet appareil pour le moment." };
+          appData = { schemaVersion: SCHEMA_VERSION, prefs: { theme: pickInitialTheme() }, stores: [] };
+        }
+        applyTheme(appData.prefs.theme);
+        // Laisser le geste ou le déplacement en cours terminer son nettoyage.
+        queueMicrotask(() => { render(); toast(errorMessage); });
+        return false;
+      }
     }
 
     function applyTheme(theme) {
@@ -1564,13 +1619,16 @@ SOFTWARE.
       pushUndo();
       appData.prefs.theme = (appData.prefs.theme === "dark") ? "light" : "dark";
       applyTheme(appData.prefs.theme);
-      saveAppData();
+      if (!saveAppData()) return;
       render();
     }
 
-    let appData = loadAppData() || createAppDataFromTemplates();
+    const loadedAppData = loadAppData();
+    const needsInitialSave = loadedAppData === null && storageRecovery === null;
+    let appData = loadedAppData || (storageRecovery
+      ? { schemaVersion: SCHEMA_VERSION, prefs: { theme: pickInitialTheme() }, stores: [] }
+      : createAppDataFromTemplates());
     applyTheme(appData.prefs.theme);
-    saveAppData(); // assure un état stable dès le début
 
     /* ----------------------------
        UI helpers
@@ -1625,8 +1683,7 @@ SOFTWARE.
     }
 
     function pushUndo() {
-      undoStack.push(JSON.stringify(appData));
-      if (undoStack.length > 60) undoStack.shift();
+      pendingUndoSnapshot = JSON.stringify(appData);
     }
 
     function doUndo() {
@@ -1634,14 +1691,17 @@ SOFTWARE.
         toast("Rien à annuler");
         return;
       }
-      const raw = undoStack.pop();
+      const raw = undoStack[undoStack.length - 1];
       try {
         const allStores = appData.prefs.allStores === true;
+        const sortMode = appData.prefs.sortMode;
         appData = JSON.parse(raw);
         // Annuler les données ne doit pas annuler le périmètre choisi dans Actions.
         appData.prefs.allStores = allStores;
+        if (sortMode !== undefined) appData.prefs.sortMode = sortMode;
         applyTheme(appData.prefs.theme);
-        saveAppData();
+        if (!saveAppData()) return;
+        undoStack.pop();
         render();
         toast("Annulé");
       } catch {
@@ -1820,6 +1880,11 @@ SOFTWARE.
       disposeReordering();
       renderedItemNodes.clear();
 
+      if (storageRecovery) {
+        renderRecovery();
+        return;
+      }
+
 	  if (ui.screen === "settings") {
 		renderSettings();
 		return;
@@ -1887,6 +1952,24 @@ SOFTWARE.
         <div class="footer">
           <button class="btn primary" data-action="add-store">${icon("plus")} Ajouter un magasin</button>
         </div>		
+      `;
+    }
+
+    function renderRecovery() {
+      appEl.innerHTML = `
+        <div class="card pad" data-recovery role="alert">
+          <h1 class="title">Courses à récupérer</h1>
+          <p>${escapeHtml(storageRecovery.message)}</p>
+          <p>Aucune donnée n’a été remplacée. ${storageRecovery.raw !== null
+            ? "Le contenu d’origine est conservé : exporte-le avant de restaurer une sauvegarde."
+            : "Tu peux réessayer ou restaurer une sauvegarde quand l’enregistrement sera disponible."}</p>
+          <div class="footer">
+            <button class="btn" data-action="export-recovery" ${storageRecovery.raw === null ? "disabled" : ""}>${icon("download")} Exporter le contenu conservé</button>
+            <button class="btn primary" data-action="import">${icon("upload")} Restaurer une sauvegarde</button>
+            <button class="btn" data-action="retry-storage">Réessayer</button>
+          </div>
+        </div>
+        <input id="fileInput" type="file" accept=".json,application/json" style="display:none" />
       `;
     }
 
@@ -2144,6 +2227,16 @@ SOFTWARE.
       const action = el.dataset.action;
       const id = el.dataset.id;
 
+      if (action === "export-recovery") {
+        exportPreservedContent();
+        return;
+      }
+      if (action === "retry-storage") {
+        location.reload();
+        return;
+      }
+      if (storageRecovery && action !== "import") return;
+
       if (action === "toggle-theme") {
         toggleTheme();
         return;
@@ -2188,7 +2281,7 @@ SOFTWARE.
           template: null,
           items: []
         });
-        saveAppData();
+        if (!saveAppData()) return;
         render();
         toast("Magasin ajouté");
         return;
@@ -2216,7 +2309,7 @@ SOFTWARE.
           if (!newName) return;
           pushUndo();
           store.name = newName;
-          saveAppData();
+          if (!saveAppData()) return;
           render();
           toast("Magasin renommé");
         }
@@ -2230,7 +2323,7 @@ SOFTWARE.
           if (!ok) return;
           pushUndo();
           appData.stores = appData.stores.filter(s => s.id !== store.id);
-          saveAppData();
+          if (!saveAppData()) return;
           if (ui.storeId === store.id) {
             ui.screen = "home";
             ui.storeId = null;
@@ -2261,7 +2354,7 @@ SOFTWARE.
           planned: true,
           bought: false
         });
-        saveAppData();
+        if (!saveAppData()) return;
         render();
         toast("Article ajouté");
         return;
@@ -2276,7 +2369,7 @@ SOFTWARE.
         pushUndo();
         it.planned = !it.planned;
         updateItemInPlace(store, it);
-        saveAppData();
+        if (!saveAppData()) return;
 
         if (ui.filterOn && !it.planned) animateRemoval(id);
         return;
@@ -2292,7 +2385,7 @@ SOFTWARE.
         if (action === "qty-inc") it.qty = Math.min(99, (it.qty || 1) + 1);
         if (action === "qty-dec") it.qty = Math.max(1, (it.qty || 1) - 1);
         updateItemInPlace(store, it);
-        saveAppData();
+        if (!saveAppData()) return;
         return;
       }
 
@@ -2321,7 +2414,7 @@ SOFTWARE.
           if (!newName) return;
           pushUndo();
           it.name = newName;
-          saveAppData();
+          if (!saveAppData()) return;
           render();
           toast("Article renommé");
         }
@@ -2336,7 +2429,7 @@ SOFTWARE.
           if (!ok) return;
           pushUndo();
           store.items = store.items.filter(x => x.id !== it.id);
-          saveAppData();
+          if (!saveAppData()) return;
           render();
           toast("Article supprimé");
         }
@@ -2402,7 +2495,7 @@ SOFTWARE.
         }
         if (choice === "scope") {
           appData.prefs.allStores = appData.prefs.allStores !== true;
-          saveAppData();
+          if (!saveAppData()) return;
           ui.searchOpen = false;
           ui.searchQuery = "";
           swipe = null;
@@ -2420,7 +2513,7 @@ SOFTWARE.
           for (const it of store.items) {
             it.planned = false;
           }
-          saveAppData();
+          if (!saveAppData()) return;
           render();
           toast("Nouvelle course");
         }
@@ -2440,7 +2533,7 @@ SOFTWARE.
             planned: false,
             bought: false
           }));
-          saveAppData();
+          if (!saveAppData()) return;
           render();
           toast("Liste restaurée");
         }
@@ -2468,6 +2561,46 @@ SOFTWARE.
     /* ----------------------------
        Export / Import
     ---------------------------- */
+    function downloadFile(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 800);
+    }
+
+    async function offerFile(blob, filename, title) {
+      // iPhone : propose « Enregistrer dans Fichiers » via Partager.
+      if (navigator.share && navigator.canShare) {
+        try {
+          const file = new File([blob], filename, { type: blob.type });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title });
+            return true;
+          }
+        } catch (err) {
+          if (err && err.name === "AbortError") return false;
+          // Si le partage échoue, conserver le téléchargement existant.
+        }
+      }
+      downloadFile(blob, filename);
+      return true;
+    }
+
+    async function exportPreservedContent() {
+      if (!storageRecovery || storageRecovery.raw === null) return;
+      try {
+        const blob = new Blob([storageRecovery.raw], { type: "text/plain;charset=utf-8" });
+        const done = await offerFile(blob, `Courses-contenu-conserve-${nowISO().slice(0, 10)}.txt`, "Contenu conservé des courses");
+        toast(done ? "Contenu conservé exporté" : "Export annulé");
+      } catch {
+        toast("Export impossible. Le contenu reste conservé dans l’app.");
+      }
+    }
+
     async function exportToFile() {
       try {
         const exportedAt = nowISO();
@@ -2479,40 +2612,15 @@ SOFTWARE.
         const payload = JSON.stringify({ exportedAt, appData }, null, 2);
         const blob = new Blob([payload], { type: "application/json" });
 
-        // iPhone : propose "Enregistrer dans Fichiers" via Partager
-        let done = false;
-        if (navigator.share && navigator.canShare) {
-          try {
-            const file = new File([blob], filename, { type: "application/json" });
-            if (navigator.canShare({ files: [file] })) {
-              await navigator.share({ files: [file], title: "Sauvegarde Liste de courses" });
-              done = true;
-            }
-          } catch (err) {
-            // Annulé = on ne fait rien
-            if (err && err.name === "AbortError") {
-              toast("Sauvegarde annulée");
-              return;
-            }
-            // sinon, on tombera sur le téléchargement
-          }
-        }
-
+        const done = await offerFile(blob, filename, "Sauvegarde Liste de courses");
         if (!done) {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          setTimeout(() => URL.revokeObjectURL(url), 800);
-          done = true;
+          toast("Sauvegarde annulée");
+          return;
         }
 
         if (done) {
           appData.lastBackupISO = exportedAt;
-          saveAppData();
+          if (!saveAppData({ errorMessage: "Le fichier a été préparé, mais sa date n’a pas pu être enregistrée dans l’app." })) return;
           render();
           toast("Sauvegarde créée");
         }
@@ -2540,21 +2648,24 @@ SOFTWARE.
           const text = await file.text();
           const obj = JSON.parse(text);
 
-          const incoming = obj && obj.appData;
-          if (!incoming || incoming.schemaVersion !== SCHEMA_VERSION || !Array.isArray(incoming.stores)) {
-            toast("Fichier invalide");
+          let incoming;
+          try {
+            incoming = validateAppData(obj && obj.appData);
+          } catch {
+            toast("Fichier invalide. Les données précédentes sont conservées.");
             return;
           }
 
           const allStores = appData.prefs.allStores === true;
-          pushUndo();
+          const sortMode = appData.prefs.sortMode;
+          if (!storageRecovery) pushUndo();
           appData = incoming;
-          appData.prefs = appData.prefs || {};
-          appData.prefs.theme = appData.prefs.theme || pickInitialTheme();
           // Les anciennes sauvegardes ne connaissent pas ce réglage : conserver le choix actuel.
           if (typeof appData.prefs.allStores !== "boolean") appData.prefs.allStores = allStores;
+          if (appData.prefs.sortMode === undefined && sortMode !== undefined) appData.prefs.sortMode = sortMode;
+          if (!saveAppData()) return;
+          storageRecovery = null;
           applyTheme(appData.prefs.theme);
-          saveAppData();
 
           ui.screen = "home";
           ui.storeId = null;
@@ -2563,7 +2674,7 @@ SOFTWARE.
           render();
           toast("Restauration OK");
         } catch {
-          toast("Restauration impossible");
+          toast("Restauration impossible. Les données précédentes sont conservées.");
         }
       };
       toast("Choisis le fichier de sauvegarde (.json)");
@@ -2712,8 +2823,7 @@ SOFTWARE.
       pushUndo();
       if (session.type === "store") appData.stores = reordered;
       else store.items = reordered;
-      saveAppData();
-      return true;
+      return saveAppData();
     }
 
     function setupReordering() {
@@ -2871,6 +2981,7 @@ SOFTWARE.
     /* ----------------------------
        Boot
     ---------------------------- */
+    if (needsInitialSave) saveAppData();
     render();
     // La liste est prête dès son rendu ; les images et les polices peuvent encore charger.
     document.body.classList.replace("loading", "ready");
