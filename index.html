@@ -548,38 +548,89 @@
     }
     .store-toolbar .meta-row {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr);
-      gap: 12px;
+      grid-template-columns: 88px 44px 44px auto;
+      justify-content: space-between;
+      gap: 8px;
       margin: 0;
     }
     .store-toolbar .meta-row > :last-child { justify-self: end; }
     .store-toolbar .meta-row > .pill,
-    .store-toolbar .meta-row > [data-action="add-item"] { height: 30px; }
+    .store-toolbar .meta-row > [data-action="add-item"] { height: 44px; }
     .store-toolbar .meta-row > [data-action="add-item"] {
       position: relative;
       overflow: visible;
-      border-radius: 999px;
+      border-radius: 14px;
     }
     .store-toolbar .meta-row > [data-action="add-item"] .icon { width: 16px; height: 16px; }
-    .store-toolbar .meta-row > [data-action="add-item"]::before {
-      content: "";
-      position: absolute;
-      inset: -7px 0;
-    }
+    .store-toolbar .meta-row > .pill { padding: 6px 8px; gap: 5px; }
     .store-toolbar .searchbar { margin-bottom: 0; }
-    .store-toolbar .store-header { position: relative; }
+    .store-toolbar .store-header { grid-template-columns: 44px minmax(0, 1fr) 44px; }
     .store-toolbar .store-title {
-      position: absolute;
-      left: 98px;
-      right: 98px;
-      top: 50%;
-      transform: translateY(-50%);
+      position: static;
     }
-    .store-toolbar [data-action="toggle-search"] { grid-column: 3; }
-    .store-toolbar [data-action="store-menu"] { grid-column: 4; }
+    .store-toolbar [data-action="store-menu"] { grid-column: 3; }
     .store-header .store-title { min-width: 0; }
 
-    .store-toolbar.all-stores .meta-row { grid-template-columns: 1fr 1fr; }
+    .store-toolbar.all-stores .meta-row { grid-template-columns: 88px 44px auto; }
+    .sort-toggle {
+      position: relative;
+      display: grid;
+      grid-template-columns: 44px 44px;
+      width: 88px;
+      height: 44px;
+      isolation: isolate;
+    }
+    .sort-toggle::before {
+      content: "";
+      position: absolute;
+      inset: 5px 0;
+      border: 1px solid var(--border);
+      border-radius: 17px;
+      background: var(--btn);
+      box-shadow: inset 0 1px 2px rgba(0,0,0,.2);
+    }
+    .sort-mode {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sort-mode::before {
+      content: "";
+      position: absolute;
+      inset: 8px 3px;
+      border: 1px solid transparent;
+      border-radius: 13px;
+    }
+    .sort-mode[aria-pressed="true"] { color: var(--text); }
+    .sort-mode[aria-pressed="true"]::before {
+      background: rgba(112,153,218,.32);
+      border-color: rgba(177,202,245,.65);
+      box-shadow: 0 1px 4px rgba(0,0,0,.2), inset 0 1px rgba(255,255,255,.14);
+    }
+    .sort-mode .icon { position: relative; width: 21px; height: 21px; }
+    .sort-mode:focus-visible { outline: 2px solid var(--text); outline-offset: 0; border-radius: 17px; }
+    @media (max-width: 340px) {
+      .store-toolbar .meta-row { column-gap: 6px; }
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
     .shopping-store-title {
       display: flex;
       align-items: center;
@@ -744,6 +795,7 @@
       -webkit-backdrop-filter: blur(10px);
     }
     .stepper button {
+      position: relative;
       appearance: none;
       display: flex;
       align-items: center;
@@ -758,6 +810,13 @@
       line-height: 1;
       -webkit-tap-highlight-color: transparent;
     }
+    .stepper button::before {
+      content: "";
+      position: absolute;
+      inset: -1px -7px;
+    }
+    /* Les cibles dépassent le compteur ; la règle glass générique ne doit pas les rogner. */
+    .item-row .stepper { overflow: visible; }
     .stepper button .icon { width: 16px; height: 16px; }
     .stepper button:active {
       background: rgba(255,255,255,.08);
@@ -793,10 +852,11 @@
     }
     .searchbar input {
       flex: 1;
+      min-width: 0;
       border: none;
       background: transparent;
       color: var(--text);
-      font-size: 15px;
+      font-size: 16px;
       outline: none;
       font-family: var(--font);
     }
@@ -836,7 +896,10 @@
     /* modals */
     #modalRoot {
       position: fixed;
-      inset: 0;
+      top: var(--modal-top, 0px);
+      left: var(--modal-left, 0px);
+      width: var(--modal-width, 100%);
+      height: var(--modal-height, 100%);
       z-index: 60;
       pointer-events: none;
     }
@@ -849,6 +912,7 @@
       display: grid;
       place-items: center;
       padding: 18px;
+      min-height: 0;
       pointer-events: all;
       opacity: 0;
       transition: opacity 160ms ease;
@@ -858,6 +922,10 @@
     }
     .modal {
       width: min(520px, 100%);
+      max-height: 100%;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
       border-radius: 22px;
       border: 1px solid var(--border);
       background: var(--card-strong);
@@ -872,6 +940,7 @@
       opacity: 1;
     }
     .modal .head {
+      flex-shrink: 0;
       padding: 14px 14px 10px 14px;
       border-bottom: 1px solid var(--border);
       display: flex;
@@ -888,6 +957,10 @@
       padding: 14px;
       display: grid;
       gap: 12px;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
     }
     .modal .body label {
       font-size: 12px;
@@ -901,7 +974,7 @@
       border: 1px solid var(--border);
       background: rgba(255,255,255,.35);
       color: var(--text);
-      font-size: 15px;
+      font-size: 16px;
       outline: none;
       font-family: var(--font);
     }
@@ -915,10 +988,15 @@
       flex-wrap: wrap;
       padding-top: 4px;
     }
+    .modal .actions .btn { min-height: 44px; }
 
     /* action sheet */
     .sheet {
       width: min(520px, 100%);
+      max-height: calc(100% - 10px - var(--bot-safe));
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
       border-radius: 22px;
       border: 1px solid var(--border);
       background: var(--card-strong);
@@ -935,6 +1013,7 @@
       opacity: 1;
     }
     .sheet .title {
+      flex-shrink: 0;
       padding: 14px 14px 10px 14px;
       font-size: 18px;
       font-weight: 850;
@@ -944,6 +1023,9 @@
     .sheet .items {
       display: grid;
       gap: 0;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
     }
     .sheet .item {
       display: flex;
@@ -1477,7 +1559,8 @@ SOFTWARE.
     }
 
     function normalizeKey(s) {
-      return safeTrim(s).toLowerCase();
+      return safeTrim(s).toLowerCase().normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "").replace(/œ/g, "oe").replace(/æ/g, "ae");
     }
 
     function pickInitialTheme() {
@@ -1587,6 +1670,10 @@ SOFTWARE.
           <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" ${common}></path></svg></span>`;
         case "more": return `
           <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h.01" ${common}></path><path d="M12 12h.01" ${common}></path><path d="M19 12h.01" ${common}></path></svg></span>`;
+        case "manual-order": return `
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="5" r="1.65"/><circle cx="16" cy="5" r="1.65"/><circle cx="8" cy="12" r="1.65"/><circle cx="16" cy="12" r="1.65"/><circle cx="8" cy="19" r="1.65"/><circle cx="16" cy="19" r="1.65"/></svg></span>`;
+        case "alpha-order": return `
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><text x="2.8" y="9.3" fill="currentColor" font-family="Arial,sans-serif" font-weight="700" font-size="10">A</text><text x="3.2" y="21.3" fill="currentColor" font-family="Arial,sans-serif" font-weight="700" font-size="10">Z</text><path d="M18 4v16m-3.3-3.3L18 20l3.3-3.3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
         case "search": return `
           <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" ${common}></circle><path d="M20 20l-3.2-3.2" ${common}></path></svg></span>`;
         case "handle": return `
@@ -1639,9 +1726,40 @@ SOFTWARE.
       }
     }
 
+    let releaseOverlayViewport = () => {};
+
+    function mountOverlay(overlay) {
+      releaseOverlayViewport();
+      modalRoot.replaceChildren(overlay);
+      const viewport = window.visualViewport;
+      const update = () => {
+        modalRoot.style.setProperty("--modal-top", `${viewport?.offsetTop || 0}px`);
+        modalRoot.style.setProperty("--modal-left", `${viewport?.offsetLeft || 0}px`);
+        modalRoot.style.setProperty("--modal-width", `${viewport?.width || window.innerWidth}px`);
+        modalRoot.style.setProperty("--modal-height", `${viewport?.height || window.innerHeight}px`);
+      };
+      const cleanup = () => {
+        viewport?.removeEventListener("resize", update);
+        viewport?.removeEventListener("scroll", update);
+        window.removeEventListener("resize", update);
+        window.removeEventListener("orientationchange", update);
+        if (releaseOverlayViewport !== cleanup) return;
+        for (const name of ["top", "left", "width", "height"]) {
+          modalRoot.style.removeProperty(`--modal-${name}`);
+        }
+        releaseOverlayViewport = () => {};
+      };
+      releaseOverlayViewport = cleanup;
+      viewport?.addEventListener("resize", update);
+      viewport?.addEventListener("scroll", update);
+      window.addEventListener("resize", update);
+      window.addEventListener("orientationchange", update);
+      update();
+      return cleanup;
+    }
+
     function showConfirm({ title, message, okText="OK", cancelText="Annuler", danger=false }) {
       return new Promise(resolve => {
-        modalRoot.innerHTML = "";
         const overlay = document.createElement("div");
         overlay.className = "modalOverlay";
         overlay.innerHTML = `
@@ -1659,7 +1777,7 @@ SOFTWARE.
             </div>
           </div>
         `;
-        modalRoot.appendChild(overlay);
+        const releaseViewport = mountOverlay(overlay);
         requestAnimationFrame(() => overlay.classList.add("open"));
 
         let closed = false;
@@ -1668,7 +1786,7 @@ SOFTWARE.
           closed = true;
           overlay.classList.remove("open");
           resolve(val);
-          setTimeout(() => overlay.remove(), 180);
+          setTimeout(() => { overlay.remove(); releaseViewport(); }, 180);
         };
 
         overlay.addEventListener("click", (e) => {
@@ -1682,7 +1800,6 @@ SOFTWARE.
 
     function showPrompt({ title, label="Nom", placeholder="", value="", okText="OK", cancelText="Annuler" }) {
       return new Promise(resolve => {
-        modalRoot.innerHTML = "";
         const overlay = document.createElement("div");
         overlay.className = "modalOverlay";
         overlay.innerHTML = `
@@ -1704,7 +1821,7 @@ SOFTWARE.
             </div>
           </div>
         `;
-        modalRoot.appendChild(overlay);
+        const releaseViewport = mountOverlay(overlay);
         requestAnimationFrame(() => overlay.classList.add("open"));
 
         const input = overlay.querySelector('input');
@@ -1716,7 +1833,7 @@ SOFTWARE.
           closed = true;
           overlay.classList.remove("open");
           resolve(val);
-          setTimeout(() => overlay.remove(), 180);
+          setTimeout(() => { overlay.remove(); releaseViewport(); }, 180);
         };
 
         overlay.addEventListener("click", (e) => {
@@ -1742,7 +1859,6 @@ SOFTWARE.
 
     function showSheet({ title, items }) {
       return new Promise(resolve => {
-        modalRoot.innerHTML = "";
         const overlay = document.createElement("div");
         overlay.className = "modalOverlay";
         overlay.style.placeItems = "end center";
@@ -1752,7 +1868,7 @@ SOFTWARE.
             <div class="items"></div>
           </div>
         `;
-        modalRoot.appendChild(overlay);
+        const releaseViewport = mountOverlay(overlay);
         const itemsEl = overlay.querySelector(".items");
         for (const it of items) {
           const div = document.createElement("div");
@@ -1778,7 +1894,7 @@ SOFTWARE.
           closed = true;
           overlay.classList.remove("open");
           resolve(val);
-          setTimeout(() => overlay.remove(), 180);
+          setTimeout(() => { overlay.remove(); releaseViewport(); }, 180);
         };
 
         overlay.addEventListener("click", (e) => {
@@ -1913,9 +2029,25 @@ SOFTWARE.
       `;
     }
 
+    const itemNameOrder = new Intl.Collator("fr", { sensitivity: "base", numeric: true });
+
+    function currentSortMode() {
+      return appData.prefs.sortMode === "alpha" ? "alpha" : "manual";
+    }
+
+    function renderSortToggle() {
+      const mode = currentSortMode();
+      return `<div class="sort-toggle" role="group" aria-label="Ordre des articles">
+        <button class="sort-mode" data-action="set-sort-mode" data-mode="manual" aria-label="Ordre manuel" aria-pressed="${mode === "manual"}">${icon("manual-order")}</button>
+        <button class="sort-mode" data-action="set-sort-mode" data-mode="alpha" aria-label="Ordre alphabétique" aria-pressed="${mode === "alpha"}">${icon("alpha-order")}</button>
+      </div>`;
+    }
+
     function visibleStoreItems(store) {
       const q = normalizeKey(ui.searchQuery);
-      return store.items.filter(item => (!ui.filterOn || item.planned) && (!q || normalizeKey(item.name).includes(q)));
+      const items = store.items.filter(item => (!ui.filterOn || item.planned) && (!q || normalizeKey(item.name).includes(q)));
+      // Le tableau filtré est une copie : l'ordre manuel enregistré n'est jamais trié.
+      return currentSortMode() === "alpha" ? items.sort((a, b) => itemNameOrder.compare(a.name, b.name)) : items;
     }
 
     function showingAllStores() {
@@ -1977,15 +2109,16 @@ SOFTWARE.
         <div class="store-header">
           <button class="btn icon" data-action="back-home" aria-label="Retour">${icon("back")}</button>
           <div class="store-title" title="${escapeAttr(allStores ? "Tous les magasins" : store.name)}">${escapeHtml(allStores ? "À acheter" : store.name)}</div>
-          <button class="btn icon" data-action="toggle-search" aria-label="Rechercher">${icon("search")}</button>
           <button class="btn icon" data-action="store-menu" aria-label="Menu">${icon("more")}</button>
         </div>
 
         <div class="meta-row">
-          <div class="pill">Reste : <strong data-remaining-count>${rest}</strong></div>
+          ${renderSortToggle()}
           ${allStores ? "" : `<button class="btn icon primary" data-action="add-item" aria-label="Ajouter un article" title="Ajouter un article">${icon("plus")}</button>`}
+          <button class="btn icon" data-action="toggle-search" aria-label="Rechercher">${icon("search")}</button>
           <button class="pill" data-action="toggle-filter-pill" aria-label="Basculer le filtre" style="cursor:pointer;">Filtre : <strong>${filterOn ? "ON" : "OFF"}</strong></button>
         </div>
+        <div class="sr-only" aria-live="polite">Reste : <strong data-remaining-count>${rest}</strong></div>
 
         <div class="searchbar ${searchOpen ? "open" : ""}">
           <div class="field card">
@@ -2339,6 +2472,17 @@ SOFTWARE.
         return;
       }
 
+      if (action === "set-sort-mode") {
+        const mode = el.dataset.mode;
+        if ((mode !== "manual" && mode !== "alpha") || mode === currentSortMode()) return;
+        appData.prefs.sortMode = mode;
+        if (saveAppData() === false) return;
+        swipe = null;
+        render();
+        window.scrollTo(0, 0);
+        return;
+      }
+
       if (action === "clear-search") {
         ui.searchQuery = "";
         updateSearchView();
@@ -2675,6 +2819,7 @@ SOFTWARE.
     }
 
     function saveReorderedRows(session, visibleIds) {
+      if (session.type === "item" && currentSortMode() !== "manual") return false;
       if (visibleIds.length !== session.visibleIds.length ||
           new Set(visibleIds).size !== visibleIds.length ||
           visibleIds.some(id => !session.visibleIds.includes(id))) return false;
@@ -2698,6 +2843,7 @@ SOFTWARE.
     function setupReordering() {
       if (ui.screen !== "home" && ui.screen !== "store") return;
       if (showingAllStores()) return;
+      if (ui.screen === "store" && currentSortMode() !== "manual") return;
       const type = ui.screen === "home" ? "store" : "item";
       const selector = type === "store" ? ".store-row" : ".item-row";
       const container = appEl.querySelector(".list");

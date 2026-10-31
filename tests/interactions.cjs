@@ -29,7 +29,8 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
       await page.locator('[data-action="open-store"]').filter({ hasText: 'Carrefour' }).click();
       await page.locator('.item-name').nth(0).click(); await page.locator('.item-name').nth(2).click();
       await page.locator('[data-action="toggle-filter-pill"]').click();
-      const remaining = () => page.locator('.meta-row .pill strong').first().innerText();
+      // Le total reste annoncé et vérifié, mais sa pastille visuelle a laissé place au tri.
+      const remaining = () => page.locator(baseline ? '.meta-row .pill strong' : '[data-remaining-count]').first().innerText();
       assert.equal(await remaining(), '2');
       await page.locator('.item-name').first().click(); await wait(220);
       if (baseline) {
