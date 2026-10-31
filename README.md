@@ -52,13 +52,16 @@ Dans chaque magasin :
 - Barre de recherche texte par nom d’article.
 - nettoyage rapide de recherche.
 
-Avec le filtre **ON**, le menu Actions propose **Tous les magasins** : une seule page
+Le menu Actions affiche toujours **Tous les magasins**, avec un libellé fixe.
+Avec le filtre **OFF**, ce choix est grisé et indique **Activer le filtre**.
+Avec le filtre **ON**, il bascule entre un magasin et une seule page
 des articles à acheter, regroupés par magasin dans l’ordre enregistré des magasins et
 des articles. Les magasins sans achat sont masqués. La recherche porte sur tous les
 groupes ; les quantités, le toucher pour retirer un achat et Undo modifient les articles
 de leur magasin d’origine.
 
-Le menu propose ensuite **Ce magasin uniquement** pour revenir au magasin de départ.
+L’état **ON/OFF** affiché à côté de **Tous les magasins** indique si la vue globale
+est active. Toucher à nouveau ce choix ramène au magasin de départ.
 Le bouton Retour et le passage du filtre à OFF y ramènent aussi. Réactiver le filtre
 seul conserve l’affichage d’un seul magasin. Le choix d’affichage reste dans Actions,
 sans accès supplémentaire à l’accueil.

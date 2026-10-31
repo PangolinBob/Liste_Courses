@@ -61,18 +61,33 @@ const fixture = { schemaVersion: 1, prefs: { theme: 'dark' }, lastBackupISO: nul
       await menu();
       assert.equal(await page.locator('.sheet [data-value="filter"]').count(), 0,
         'Le menu ne doit plus dupliquer la commande du filtre');
-      assert.equal(await page.locator('.sheet [data-value="scope"]').count(), 0,
-        'Le choix de tous les magasins est absent lorsque le filtre est OFF');
+      const scope = page.locator('.sheet [data-value="scope"]');
+      assert.equal(await scope.count(), 1,
+        'Tous les magasins doit toujours être visible, même avec le filtre OFF');
+      assert.equal(await scope.locator('div').first().innerText(), 'Tous les magasins');
+      assert.equal(await scope.locator('div').last().innerText(), 'Activer le filtre');
+      assert.equal(await scope.getAttribute('aria-disabled'), 'true');
+      await scope.evaluate(node => node.click());
+      assert.equal(await page.locator('.sheet').count(), 1, 'Un choix désactivé ne ferme pas le menu');
+      assert.deepEqual(await groups(), []);
+      assert.deepEqual(await stored(), fixture, 'Le choix désactivé ne change pas les courses');
       await choice('cancel');
       await page.locator('[data-action="toggle-filter-pill"]').click();
       assert.deepEqual(await rows(), ['b2', 'b1']);
-      await openGlobal();
+      await menu();
+      assert.equal(await scope.locator('div').first().innerText(), 'Tous les magasins');
+      assert.equal(await scope.locator('div').last().innerText(), 'OFF');
+      assert.notEqual(await scope.getAttribute('aria-disabled'), 'true');
+      await choice('scope');
       assert.deepEqual(await groups(), ['s_b', 's_a'], 'Ordre des magasins conservé, magasins sans achat masqués');
       assert.deepEqual(await rows(), ['b2', 'b1', 'a2', 'a1'], 'Ordre des articles conservé');
       assert.equal(await remaining(), '4');
       assert.equal(await page.locator('[data-action="add-item"]').count(), 0,
         'Aucun ajout ne doit viser implicitement un magasin caché');
       await menu();
+      assert.equal(await scope.locator('div').first().innerText(), 'Tous les magasins',
+        'Le libellé reste le même dans la vue globale');
+      assert.equal(await scope.locator('div').last().innerText(), 'ON');
       assert.equal(await page.locator('.sheet [data-value="new"], .sheet [data-value="restore"]').count(), 0,
         'Les actions propres au magasin restent dans sa vue');
       await choice('cancel');
@@ -153,7 +168,7 @@ const fixture = { schemaVersion: 1, prefs: { theme: 'dark' }, lastBackupISO: nul
       await page.reload();
       assert.deepEqual(await stored(), beforeReload, 'Quantités et achats conservés à la réouverture');
       assert.deepEqual(errors, []);
-      results.push({ motion, filterGate: true, groupedOrder: true, itemActions: true, search: true,
+      results.push({ motion, alwaysVisibleMenu: true, filterGate: true, groupedOrder: true, itemActions: true, search: true,
         undo: true, emptyGroups: true, passed: true });
       await context.close();
     }

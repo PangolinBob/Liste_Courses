@@ -1747,6 +1747,7 @@ SOFTWARE.
           const div = document.createElement("div");
           div.className = "item" + (it.danger ? " danger" : "");
           if (it.disabled) {
+            div.setAttribute("aria-disabled", "true");
             div.style.opacity = ".45";
             div.style.pointerEvents = "none";
           }
@@ -1772,7 +1773,7 @@ SOFTWARE.
         overlay.addEventListener("click", (e) => {
           if (e.target === overlay) return close(null);
           const item = e.target.closest(".item");
-          if (item) return close(item.dataset.value || null);
+          if (item && item.getAttribute("aria-disabled") !== "true") return close(item.dataset.value || null);
         });
       });
     }
@@ -2372,7 +2373,8 @@ SOFTWARE.
           title: "Actions",
           items: [
             { label: "Undo", value: "undo", disabled: !undoStack.length, hint: undoStack.length ? `${undoStack.length}` : "—" },
-            ...(ui.filterOn ? [{ label: allStores ? "Ce magasin uniquement" : "Tous les magasins", value: "scope" }] : []),
+            { label: "Tous les magasins", value: "scope", disabled: !ui.filterOn,
+              hint: !ui.filterOn ? "Activer le filtre" : allStores ? "ON" : "OFF" },
             ...(!allStores ? [
               { label: "Nouvelle course", value: "new" },
               { label: "Restaurer la liste d’origine", value: "restore", disabled: !canRestore }
