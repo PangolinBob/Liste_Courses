@@ -2,6 +2,9 @@
 
 Application web locale de **liste de courses** (mobile-first), avec interface et logique intégrées dans `index.html`, ressources locales et persistance locale.
 
+La **version 1.1** est indiquée au bas du menu Actions. Ce numéro appartient au
+programme effectivement chargé, y compris quand il vient du cache local.
+
 ## Objectif
 
 Gérer simplement tes courses par magasin, avec une interface tactile soignée :
@@ -50,7 +53,16 @@ Dans chaque magasin :
 ## 3) Filtre et recherche
 - Filtre ON/OFF pour n’afficher que les articles “prévus”.
 - Barre de recherche texte par nom d’article.
+- Recherche avec ou sans accents et ligatures (`creme` trouve `Crème`, `oeufs` trouve `Œufs`).
 - nettoyage rapide de recherche.
+
+Le sélecteur compact à deux positions de l’en-tête choisit directement l’ordre
+**Manuel** (poignée à six points) ou **Alphabétique** (A–Z), sans ouvrir de menu.
+Ce choix est enregistré et conservé lors de la navigation, du filtre, de la recherche,
+de la réouverture et d’Undo. L’ordre alphabétique est français et porte sur une copie
+d’affichage : le rangement manuel enregistré reste intact. Le retour à Manuel le
+retrouve exactement. Dans la vue globale, seuls les articles de chaque groupe sont
+triés ; l’ordre des magasins reste celui enregistré.
 
 Le menu Actions affiche toujours **Tous les magasins**, avec un libellé fixe.
 Ce réglage est modifiable quel que soit l’état du filtre. Son état **ON/OFF** indique
@@ -64,7 +76,7 @@ le périmètre choisi pour le filtre :
 Le choix est enregistré dans les préférences locales et conservé au passage du filtre
 à OFF, au retour à l’accueil, au changement de magasin et à la réouverture de l’app.
 Retour mène à l’accueil sans modifier ce choix ; Undo annule les données sans annuler
-le réglage d’affichage. Restaurer une ancienne sauvegarde qui ne contient pas ce réglage
+les réglages d’affichage. Restaurer une ancienne sauvegarde qui ne contient pas ce réglage
 conserve le choix actuel ; une sauvegarde qui le contient restaure sa valeur enregistrée.
 Le réglage reste dans Actions, accessible depuis l’accueil et depuis un magasin.
 
@@ -72,9 +84,10 @@ Dans la vue globale, les magasins sans achat sont masqués. La recherche porte s
 les groupes ; les quantités, le toucher pour retirer un achat et Undo modifient les
 articles de leur magasin d’origine.
 
-L’ajout, la nouvelle course, la restauration et le réordonnancement restent dans la vue
-d’un magasin ; la vue globale reprend cet ordre et conserve ses commandes en haut
-pendant le défilement.
+L’ajout, la nouvelle course et la restauration restent dans la vue d’un magasin.
+Le déplacement des articles est disponible en mode Manuel ; celui des magasins à
+l’accueil reste disponible quel que soit le tri choisi. Les commandes de la liste
+restent accessibles en haut pendant le défilement.
 
 Le regroupement des articles et la conservation de leur ordre ont été validés sur
 l’iPhone 13 mini le 30 octobre 2026. La stabilité du réglage mémorisé de 8421d67 a été
@@ -90,22 +103,39 @@ Le bouton “Actions” (trois points) est accessible en haut à droite de l’a
 dans chaque magasin. Les commandes communes sont :
 - Undo,
 - Tous les magasins (réglage ON/OFF),
-- Passer en mode clair / Passer en mode sombre.
+- Passer en mode clair / Passer en mode sombre,
+- Sauvegardes.
 
 Dans la vue d’un magasin, le menu propose également :
 - Nouvelle course (remet `planned=false` sans toucher aux quantités),
 - Restaurer la liste d’origine (si magasin template).
 
 ## 6) Sauvegarde / restauration
-Depuis l’écran Réglages :
+Depuis **Actions → Sauvegardes** (également accessible par le titre Listes de l’accueil) :
 - **Sauvegarder** en JSON,
 - **Restaurer** depuis un JSON.
 
 Le JSON inclut l’état complet (magasins, articles, quantités, préférences thème…).
+Les articles ajoutés dans l’app vivent sur l’appareil ; le fichier exporté en constitue
+une copie de secours distincte du code. « Restaurer la liste d’origine » remet au
+contraire les articles initiaux du magasin et ne récupère pas les ajouts personnels.
+
+La restauration contrôle le contenu entier du fichier avant de remplacer les données.
+Un fichier invalide laisse les listes précédentes intactes. Les champs inconnus et
+les personnalisations valides sont conservés. Si une ancienne sauvegarde ne contient
+pas le choix du tri ou le périmètre tous magasins, le choix actuel est conservé.
+
+Au démarrage, des données illisibles ou d’une version incompatible ne sont jamais
+remplacées silencieusement par les listes initiales : un écran de récupération propose
+leur export brut, une restauration ou une nouvelle tentative. En cas de refus
+d’enregistrement, l’app revient au dernier état effectivement sauvegardé et l’annonce ;
+l’action refusée ne pollue pas Undo.
 
 ## 7) Thème et UI
 - thème clair/sombre depuis Actions (choix mémorisé),
 - changement de thème et filtre ON/OFF sans pastille de confirmation,
+- nom du magasin dégagé, recherche sur la deuxième ligne et zones tactiles étendues,
+- formulaires adaptés à l’espace visible au-dessus du clavier, avec défilement si nécessaire,
 - rendu “glassmorphism” ajustable (`VISUAL.GLASS`, `VISUAL.CONTRAST`),
 - splash screen animé,
 - toasts, modales, action sheets.
@@ -204,10 +234,17 @@ Vérifications :
 - `node tests/scope-preference.cjs` vérifie le réglage indépendant du filtre et sa
   conservation après navigation, changement de thème, réouverture, Undo et restauration
   d’une ancienne sauvegarde.
+- `node tests/data-safety.cjs` vérifie les fichiers invalides, le démarrage avec des
+  données illisibles et les refus d’écriture ; `--baseline` reproduit les défauts de référence.
+- `node tests/ui-updates.cjs` vérifie recherche, tri non destructif, gestes, en-tête,
+  cibles tactiles et formulaires avec une géométrie de clavier simulée ;
+  `--ref=5862a4f` compare la version antérieure.
 - `node tests/interactions.cjs --baseline` reproduit le compteur bloqué sans animation sur la version de référence.
 
 Le banc utilise Chromium, un CPU ralenti six fois et des profils isolés de 28 et 300 articles.
 Ses temps de traitement sont comparables sur le même PC ; ils ne constituent pas une mesure du GPU ni de Safari sur l’iPhone.
+Les essais de clavier simulé ne remplacent pas une validation du clavier réel dans
+Safari sur l’iPhone 13 mini.
 
 ## Ouverture rapide et cache local
 
